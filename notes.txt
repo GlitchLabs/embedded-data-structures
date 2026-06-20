@@ -1,0 +1,242 @@
+================================================================================
+LOW LEVEL C++ INTERVIEW PREP NOTES
+================================================================================
+
+================================================================================
+ABOUT ME
+================================================================================
+- Self taught, 3 years as Software Engineer Associate at Lockheed Martin
+- Strong intuition from real experience but often lack formal terminology
+- Learned a lot by doing but no one explained the "why" or named the concepts
+- Very logical, engineering minded — plan before building
+- Learn best in context, through projects
+- Tend to overload my plate — keep scope tight
+- Recently doing self study: Codecademy (learned templates recently)
+
+SKILLS I HAVE:
+- OOP (solid)
+- Pointers (conceptual understanding)
+- Heap vs stack (understand it, just needed terminology)
+- Memory leaks (knew the concept)
+- RAII (knew the concept, forgot the acronym)
+- Templates (recently refreshed)
+- CMake (had used it before, forgot the workflow)
+- Intuition for embedded constraints from Lockheed experience
+
+GAPS TO FILL:
+- Formal terminology for concepts I already understand intuitively
+- Big O notation
+- CPU registers and architecture (32 bit vs 64 bit)
+- Bit manipulation
+- Concurrency
+- Performance optimization
+- size_t and fixed width types (seen them, didn't fully understand them)
+
+================================================================================
+TOOLS & ENVIRONMENT
+================================================================================
+
+CMAKE:
+- CMake is a build system GENERATOR — it does NOT compile your code
+- It reads CMakeLists.txt and generates instructions (like Makefiles) for the
+  actual build tool to follow
+- Analogy: CMake is the ARCHITECT, Make is the CARPENTER
+- Make reads CMake's generated Makefiles and does the actual compiling/linking
+
+CMAKE WORKFLOW:
+  mkdir build
+  cd build
+  cmake ..       <- points CMake at parent directory where CMakeLists.txt lives
+  make           <- actually compiles and links your code
+
+CMakeLists.txt STRUCTURE:
+  cmake_minimum_required(VERSION 3.10)   <- minimum cmake version needed
+  project(projectName)                   <- declares project name
+  add_executable(targetName source.cpp)  <- what to build and from what files
+  target_include_directories(targetName ACCESS_LEVEL folderName) <- where headers live
+
+- add_executable must come BEFORE target_include_directories — CMake reads top to bottom
+  the target must exist before you can configure it
+
+target_include_directories ACCESS LEVELS:
+  PRIVATE   — only this target needs these headers (use this for executables)
+  PUBLIC    — this target AND anything linking to it gets the headers
+  INTERFACE — this target doesn't need them but anything linking to it does
+
+- Build directory keeps generated files separate from source files (clean)
+- To add a new .cpp file: add it to add_executable(), then re-run cmake .. and make
+- Installed version: 3.10 is a safe minimum (system has 3.31.0)
+
+HOW #include WORKS:
+- #include is like copy-pasting the header's contents into the file that includes it
+- The compiler ONLY processes files pulled into the build via #include or add_executable
+- A header sitting on disk is just a text file — compiler never sees it until something includes it
+- You can have a syntax error in a header and the build succeeds if nothing includes it
+- Always include your headers in a .cpp file to actually get them compiled and checked
+
+COMPILER vs IDE — HOW THEY FIND HEADERS:
+- These are TWO separate systems that both need to know where your headers are
+- The COMPILER (invoked by make) uses CMakeLists.txt — target_include_directories tells it where to look
+  If make builds cleanly, the compiler found everything it needed
+- The IDE (VS Code etc.) has its own separate header resolution system for features like
+  autocomplete, error highlighting, and go-to-definition
+  It does NOT automatically read CMakeLists.txt unless configured to do so
+- An IDE include error does NOT mean your code won't compile — always check make first
+- Fix: use the CMake Tools extension in VS Code to let the IDE read your CMakeLists.txt
+  This syncs the IDE's understanding with the actual build system
+
+================================================================================
+C++ CONCEPTS
+================================================================================
+
+STACK vs HEAP:
+- Stack: automatic memory, where local variables and function calls live
+  - Fixed, limited size
+  - Memory freed automatically when variable goes out of scope
+  - In embedded: blowing the stack (deep recursion, large locals) = crash, no OS to save you
+- Heap: intentional memory, requested with 'new', must be freed with 'delete'
+  - You ask for it, you are responsible for giving it back
+  - Unpredictable timing (bad for real time systems)
+
+MEMORY LEAK:
+- When heap memory is allocated but never freed
+- On a desktop app: OS reclaims memory when program exits
+- On embedded system running 24/7: slowly consumes all RAM until system crashes
+- In a missile system: mission failure
+
+RAII (Resource Acquisition Is Initialization):
+- Tying a resource (like heap memory) to an object's lifetime
+- When the object goes out of scope, the destructor cleans up the resource automatically
+- Prevents memory leaks by making cleanup automatic
+
+UNDEFINED BEHAVIOR:
+- Uninitialized pointer pointing at random memory = ticking time bomb
+- Always initialize pointers to nullptr if not pointing at anything yet
+
+NULLPTR:
+- Explicit way to say "this pointer points at nothing"
+- Always use instead of leaving a pointer uninitialized
+
+SIZE_T:
+- Unsigned integer type designed for representing sizes and counts
+- Can't be negative (a negative size makes no sense)
+- Automatically matches the platform size (32 bit system = 32 bit size_t, etc.)
+- Lives in <cstddef>
+- Use for: size, capacity, array indices, loop counters over collections
+
+FIXED WIDTH TYPES (from <cstdint>):
+- uint32_t, uint16_t, int8_t etc.
+- Guarantee exact size regardless of platform
+- Critical in embedded systems where hardware varies and resources are scarce
+- Seen a lot at Lockheed — now I know why
+
+DECLARATION vs DEFINITION:
+- Declaration: telling the compiler "this thing exists, here's its name and shape"
+- Definition: the actual implementation, the body of the code
+
+TEMPLATES:
+- Allow a class or function to work with any type
+- Syntax: template<typename T> above the class or function
+- 'typename' and 'class' are interchangeable in this context (typename is more modern)
+- T is used wherever a type would normally go
+- For templated classes: both declaration AND definition go in the header file
+- WHY: compiler generates a brand new version of the class for every type used
+  ex: DynamicArray<int>, DynamicArray<float>, DynamicArray<MyStruct> are all
+  different generated classes — compiler needs the full definition to do that
+- Regular classes can split declaration (.hpp) and definition (.cpp)
+  Templates cannot — they live entirely in headers
+
+LAZY vs EAGER INITIALIZATION:
+- Lazy: don't allocate resources until you actually need them
+  - Better for real time embedded: scarce resources, unknown hardware
+  - Let the engineer decide capacity — they know the hardware
+- Eager: allocate upfront, ready to go immediately
+  - Convenient but wastes resources if you never use them
+
+================================================================================
+REAL TIME EMBEDDED SYSTEMS
+================================================================================
+
+EMBEDDED:
+- Software running on dedicated hardware with a specific purpose
+- Not a general purpose computer
+- Examples: microcontrollers, FPGAs, sensors, guidance systems
+- Often: limited RAM, no hard drive, sometimes no OS at all
+
+REAL TIME:
+- Software has TIMING GUARANTEES
+- Not just "fast" — operations MUST complete within X microseconds, every time
+- Missing a deadline = correctness failure, not just a performance problem
+- Example: guidance system that calculates course correction 10ms too late is WRONG
+
+WHY STL IS OFTEN AVOIDED IN EMBEDDED:
+- std::vector, std::string etc. use dynamic memory allocation internally
+- Dynamic allocation has unpredictable timing — unacceptable in real time systems
+- STL overhead can be too large for resource constrained hardware
+- Some embedded environments don't have full STL available
+- Solution: roll your own — know exactly what the code does and how long it takes
+
+================================================================================
+PROJECT: LOW LEVEL DATA STRUCTURES LIBRARY
+================================================================================
+
+GOAL: Build a reusable data structures library without STL, from scratch
+      Simulates what real embedded engineers actually write
+
+ROADMAP:
+  1. Dynamic Array        <- currently building (memory + pointers + templates)
+  2. Linked List          (pointers + structs)
+  3. Queue or Stack       (built on top of linked list)
+  4. Bit flags            (bit manipulation)
+  5. Thread safety        (concurrency)
+  6. Profiling            (performance + Big O in practice)
+
+LEARNING STRUCTURE:
+  - After each concept: explain it back in my own words
+  - After each feature: small coding challenge without help
+  - Every few topics: mini review session revisiting older concepts
+
+DYNAMIC ARRAY — Member Variables:
+  T* data          <- pointer to heap memory block where elements live
+  size_t size      <- how many elements are currently stored
+  size_t capacity  <- how much space is allocated
+
+DYNAMIC ARRAY — Growth Strategy:
+  When full:
+  1. Allocate new larger chunk of heap memory
+  2. Copy all existing elements to new chunk
+  3. Delete old chunk
+  4. Point data pointer at new chunk
+  5. Update capacity
+  - Can't extend existing chunk — something else might be adjacent in memory
+  - Copy step is O(n) — expensive, real time engineers think carefully about this
+
+================================================================================
+PROGRAM DESIGN & STRUCTURE (to cover as project grows)
+================================================================================
+- Currently a learning gap — struggle with how objects connect without spaghetti code
+- Recently learned: dependency injection (need more reps)
+
+CONCEPTS TO LEARN IN CONTEXT THROUGH THE PROJECT:
+- Encapsulation: how does an object expose itself safely to outside code?
+- Dependency management: how do you use one object inside another without tight coupling?
+- Separation of concerns: adding new things shouldn't break existing things
+- Dependency injection: passing dependencies in rather than creating them internally
+- SOLID principles
+- Design patterns
+
+NOTE: Learn these in context as the library grows, not from a textbook
+
+================================================================================
+BIG O NOTATION (intro)
+================================================================================
+- Language for describing how an algorithm SCALES as input grows
+- Not exact speed — describes the relationship between input size and work done
+- Covers both TIME complexity and SPACE (memory) complexity
+
+O(1)     — constant time, doesn't matter how big input is (ex: array index lookup)
+O(n)     — linear, scales with input size (ex: copying all elements)
+O(n²)   — quadratic, nested loops, gets bad fast
+O(log n) — logarithmic, think binary search, very efficient
+
+================================================================================
