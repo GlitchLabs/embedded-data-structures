@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <cassert>
 template<typename T>
 class DynamicArray {
 public:
@@ -6,7 +7,6 @@ public:
       purpose: Construct a Dynamic Array of variable type
       Returns: None
     */
-
     DynamicArray(): m_size(0), m_capacity(0), m_data(nullptr){
 
     } 
@@ -21,7 +21,7 @@ public:
         //increae m_capacity by the doubling strategy
         m_capacity = (m_capacity == 0) ? 1 :  m_capacity * 2;
         T* newData = new T[m_capacity];
-        for(int i = 0; i < m_size; i++){
+        for(size_t i = 0; i < m_size; i++){
             newData[i] = *(m_data+i);
         }
         delete[] m_data;
@@ -30,6 +30,21 @@ public:
     *(m_data + m_size) = data;
     m_size++;
     }
+
+    /*
+    Params: An index inside the array that is occupied with data
+    Purpose: Return the data at the index specified.
+    Returns: element at index passed in as parameter.
+    */
+   T at(size_t index){
+    assert(index < m_size);
+    return *(m_data + index);
+   }
+
+   //destructor
+   ~DynamicArray(){
+    delete[] m_data;
+   }
 private:
 size_t m_size;
 size_t m_capacity;

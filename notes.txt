@@ -67,6 +67,16 @@ target_include_directories ACCESS LEVELS:
 - To add a new .cpp file: add it to add_executable(), then re-run cmake .. and make
 - Installed version: 3.10 is a safe minimum (system has 3.31.0)
 
+WHEN TO RUN cmake .. vs make:
+- cmake ..: only when project STRUCTURE changes
+    adding new source files
+    adding new include directories
+    changing CMakeLists.txt
+- make: anytime you change code inside existing files
+- Day to day workflow: just make then ./LLCPP
+- INCREMENTAL BUILDS: Make only recompiles files that changed — smart and efficient
+  If main.cpp didn't change, Make skips it entirely
+
 ================================================================================
 C++ CONCEPTS
 ================================================================================
@@ -164,12 +174,93 @@ TEMPLATES:
 - Syntax: template<typename T> above the class or function
 - 'typename' and 'class' are interchangeable in this context (typename is more modern)
 - T is used wherever a type would normally go
-- For templated classes: both declaration AND definition go in the header file
-- WHY: compiler generates a brand new version of the class for every type used
+- DynamicArray<T> alone is NOT valid — T is unknown, compiler can't compile it
+- Only when you provide a type (DynamicArray<int>) does the compiler generate real code
+- The compiler generates a new CONCRETE CLASS for each type you use
   ex: DynamicArray<int>, DynamicArray<float>, DynamicArray<MyStruct> are all
-  different generated classes — compiler needs the full definition to do that
+  different generated classes under the hood
+- For templated classes: both declaration AND definition go in the header file
+- WHY: compiler needs the full definition visible when it sees DynamicArray<int>
+  in main.cpp — if definition was in a .cpp file, compiler would never see it
 - Regular classes can split declaration (.hpp) and definition (.cpp)
   Templates cannot — they live entirely in headers
+
+RULE OF THREE / RULE OF FIVE:
+- If you manage raw memory and need to define ANY of these, define ALL of them:
+
+  RULE OF THREE (C++03 and earlier):
+  1. Destructor          — clean up heap memory when object goes out of scope
+  2. Copy constructor    — what happens when you copy the object
+  3. Copy assignment     — what happens when you assign one object to another
+
+  RULE OF FIVE (modern C++11 and later, adds):
+  4. Move constructor    — transfer ownership instead of copying (more efficient)
+  5. Move assignment     — same but for assignment
+
+- WHY: if you manage raw memory, compiler-generated versions do the WRONG thing
+  (shallow copy — copies the pointer, not the data — two objects pointing at same memory)
+- We are writing embedded-style C++ so Rule of Three is the priority
+- Rule of Five adds move semantics which are a modern C++ optimization
+
+C++ VERSIONS AND EMBEDDED STYLE:
+- C++03 and earlier: Rule of Three (copy only)
+- C++11 and later (modern C++): Rule of Five — adds move semantics
+- Move semantics: transfer OWNERSHIP of heap memory instead of copying it
+  Instead of allocating new memory and copying all elements, just hand over the pointer
+  Much more efficient than copying
+- We write modern C++ (C++11+) but in EMBEDDED STYLE:
+  Prioritize explicit control and determinism over convenience features
+  Rule of Three first, move semantics later
+
+DESTRUCTOR:
+- Runs automatically when object goes out of scope
+- Responsible for freeing heap memory the object owns
+- Without it: m_data is never deleted = memory leak every time DynamicArray is destroyed
+- Syntax: ~ClassName() { }
+
+CONCRETE vs ABSTRACT CLASS (OOP):
+- Abstract class: has at least one pure virtual function, cannot be instantiated
+  defines an interface that subclasses MUST implement
+- Concrete class: fully implemented, no unimplemented methods, CAN be instantiated
+- In template context: "concrete" means a real fully-typed compilable class
+  as opposed to the abstract template DynamicArray<T>
+
+EXCEPTIONS IN EMBEDDED SYSTEMS:
+- Exceptions use stack unwinding — runtime unwinds the call stack cleaning up objects
+- Stack unwinding takes unpredictable time = breaks determinism
+- Many embedded compilers disable exceptions entirely to save space and avoid overhead
+- Some real time operating systems don't support them at all
+- Rule: exceptions are usually off the table in embedded
+
+ERROR HANDLING OPTIONS IN EMBEDDED (in place of exceptions):
+1. assert(condition) — halts program immediately if condition is false
+   - Debug builds: active, catches bugs early
+   - Release builds: NDEBUG flag defined, assert compiles to nothing (no-op)
+   - Same code, different behavior depending on build mode
+   - Use for: catching programmer errors, invalid states that should never happen
+2. Error codes — return a status, pass value out through a reference parameter
+   - Common in production embedded code
+   - Seen at Lockheed in logging systems
+3. Return default constructed T{} — works for any type but caller can't distinguish error from real data
+4. Return pointer — nullptr on failure, valid pointer on success
+
+BEST PRACTICE IN EMBEDDED:
+- assert() in debug builds to catch bugs during development
+- Error codes in production for recoverable errors
+- Never exceptions
+
+ASSERT SYNTAX:
+  #include <cassert>
+  assert(condition that should be TRUE);
+  // if condition is false: program halts immediately and reports where
+  // example: assert(index < m_size);
+
+PREPROCESSOR DIRECTIVES & BUILD MODES:
+- NDEBUG (No Debug) — compiler flag set in release/production builds
+- assert() checks NDEBUG automatically:
+    debug build:   assert is active
+    release build: assert compiles to nothing (zero cost)
+- Same source code behaves differently based on build configuration
 
 LAZY vs EAGER INITIALIZATION:
 - Lazy: don't allocate resources until you actually need them
@@ -180,6 +271,40 @@ LAZY vs EAGER INITIALIZATION:
 
 ================================================================================
 REAL TIME EMBEDDED SYSTEMS
+================================================================================
+
+FIRMWARE:
+- Firmware IS real software — not "in between" hardware and software, that's imprecise
+- Software written specifically to control hardware directly
+- Stored in non-volatile memory (flash memory) on the chip itself
+- Tightly coupled to specific hardware — not portable like application software
+- Firmware engineers write C and C++ — real code, real logic, real bugs
+- Likely what you'd be writing at the new role
+
+PROGRAM vs SOFTWARE vs FIRMWARE:
+- Program: a specific executable, one thing that runs
+- Software: broader term, collection of programs, libraries, a whole system
+- Firmware: software burned onto hardware, runs without an OS
+
+WHY "BURNED":
+- Old term from ROM chips (Read Only Memory) — data written using a ROM burner device
+  using electrical signals, permanent and non-erasable
+- Modern chips use FLASH memory — erasable and rewritable
+- "Burned" stuck around out of habit, still used constantly in the industry
+
+MEMORY LEAK DETECTION TOOLS:
+- Valgrind: runs your program through it, tracks every allocation, reports what was never freed
+  Common on Mac/Linux
+- AddressSanitizer: built into clang, add a compiler flag and it instruments your code automatically
+  Easier to use than Valgrind on Mac
+  We will use this in the performance section
+
+new[] vs delete[] vs new vs delete:
+- ALWAYS match: new[] with delete[], and new with delete
+- T* pointer doesn't tell you if it points to one element or an array — YOU have to remember
+- Using delete instead of delete[] on an array = undefined behavior, only destroys first element
+- The compiler will NOT catch this mismatch
+
 ================================================================================
 
 EMBEDDED:
