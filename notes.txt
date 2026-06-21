@@ -67,6 +67,10 @@ target_include_directories ACCESS LEVELS:
 - To add a new .cpp file: add it to add_executable(), then re-run cmake .. and make
 - Installed version: 3.10 is a safe minimum (system has 3.31.0)
 
+================================================================================
+C++ CONCEPTS
+================================================================================
+
 HOW #include WORKS:
 - #include is like copy-pasting the header's contents into the file that includes it
 - The compiler ONLY processes files pulled into the build via #include or add_executable
@@ -85,10 +89,6 @@ COMPILER vs IDE — HOW THEY FIND HEADERS:
 - Fix: use the CMake Tools extension in VS Code to let the IDE read your CMakeLists.txt
   This syncs the IDE's understanding with the actual build system
 
-================================================================================
-C++ CONCEPTS
-================================================================================
-
 STACK vs HEAP:
 - Stack: automatic memory, where local variables and function calls live
   - Fixed, limited size
@@ -102,7 +102,32 @@ MEMORY LEAK:
 - When heap memory is allocated but never freed
 - On a desktop app: OS reclaims memory when program exits
 - On embedded system running 24/7: slowly consumes all RAM until system crashes
-- In a missile system: mission failure
+- On bare metal embedded (no OS): leaked memory is gone until hardware is power cycled
+  No OS means no cleanup — ever. A leak during a mission = potential mission failure
+- Every new MUST have a matching delete — embedded engineers are paranoid about this
+
+OFF BY ONE ERROR:
+- Classic bug with array loops — going one index too far
+- m_size = 3 means valid indexes are 0, 1, 2
+  i < m_size  -> i = 0, 1, 2        <- correct
+  i <= m_size -> i = 0, 1, 2, 3     <- reads memory you don't own = undefined behavior
+- Always use < not <= when iterating over array elements
+
+WHAT delete[] ACTUALLY DOES:
+- Runs the destructor on each element (if T has one)
+- Returns the memory to the heap — marks those shelves as available again
+- Does NOT touch the pointer itself — pointer still holds the old address after delete
+- That's called a DANGLING POINTER — holds an address to memory you no longer own
+- Always reassign or set to nullptr after deleting to avoid dangling pointers
+
+DELETE ORDER MATTERS — avoid losing your only pointer:
+- Wrong order:
+    m_data = newData;   // old memory address lost forever = MEMORY LEAK
+    delete[] newData;   // deletes the new memory you just assigned to m_data!
+- Right order:
+    delete[] m_data;    // free old memory first while you still have the address
+    m_data = newData;   // now safely point to new memory
+- Cutting off the only pointer to heap memory = that memory is leaked forever
 
 RAII (Resource Acquisition Is Initialization):
 - Tying a resource (like heap memory) to an object's lifetime
@@ -196,6 +221,28 @@ LEARNING STRUCTURE:
   - After each feature: small coding challenge without help
   - Every few topics: mini review session revisiting older concepts
 
+POINTERS AND ARRAY INDEXING UNDER THE HOOD:
+- A pointer holds the address of the FIRST element only
+- The compiler finds other elements using math:
+    address of element[i] = base address + (i * sizeof(T))
+- When you write newData[2], the compiler turns that into:
+    "go to base address, skip forward 2 elements worth of bytes, read what's there"
+- This is why arrays MUST be contiguous — the math only works if elements are next to each other
+- T* looks the same for a pointer to a single element AND a pointer to an array
+  The pointer is just an address — context tells you how to use it
+
+MENTAL MODEL — HEAP MEMORY AS A WAREHOUSE:
+- Heap memory is like a giant warehouse with numbered shelves
+- When you call: T* newData = new T[4];
+  You're saying: "Give me 4 shelves in a row, give me the address of the first one"
+- newData holds that address (e.g. shelf 1042)
+- The array lives at shelves 1042, 1043, 1044, 1045 — contiguous, all in a row
+- A pointer holds the address of the FIRST shelf — the rest follow sequentially
+- During a grow operation:
+    m_data  -> shelf 500:  [A, B, C, C]              <- old chunk, full
+    newData -> shelf 1042: [_, _, _, _, _, _, _, _]   <- new chunk, empty
+  Then copy old into new, delete old, point m_data at new
+
 DYNAMIC ARRAY — Member Variables:
   T* data          <- pointer to heap memory block where elements live
   size_t size      <- how many elements are currently stored
@@ -210,6 +257,61 @@ DYNAMIC ARRAY — Growth Strategy:
   5. Update capacity
   - Can't extend existing chunk — something else might be adjacent in memory
   - Copy step is O(n) — expensive, real time engineers think carefully about this
+
+================================================================================
+GIT & GITHUB
+================================================================================
+
+THREE STEP WORKFLOW:
+  git add <files>    <- stage specific files (be explicit, not git add .)
+  git commit -m ""   <- commit with a message
+  git push           <- push to remote (origin)
+
+WHY BE EXPLICIT WITH git add:
+- git add . adds everything including secrets, credentials, large binaries
+- Being explicit means consciously choosing what goes in each commit
+- Especially important on defense/sensitive projects
+
+ATOMIC COMMITS:
+- Each commit should represent one logical change
+- Makes history readable, easy to revert specific changes, easier to review in PRs
+
+COMMIT MESSAGE CONVENTION:
+  First line: short summary, under 50 chars, imperative tense ("Add" not "Added")
+  Blank line
+  Body: longer description if needed
+
+.gitignore:
+- Controls what git ignores and won't track
+- Add generated/build folders (Build/), secrets, credentials
+- The .gitignore file itself SHOULD be committed so teammates get it too
+
+REMOTE:
+- origin — default name for the remote repository on GitHub
+- git remote add origin <url> — connects local repo to GitHub
+- git push -u origin main — pushes and sets upstream tracking
+
+BRANCHING STRATEGY (real engineer workflow):
+- Never commit directly to main — it should always be stable and buildable
+- Create a feature branch for each piece of work, merge back when done
+- Convention for this project:
+    main                    <- stable, always builds
+    feature/dynamic-array   <- current work
+    feature/linked-list     <- next data structure
+    etc.
+
+BRANCH COMMANDS:
+  git checkout -b <branch-name>   <- classic way: create and switch in one command
+  git switch -c <branch-name>     <- newer, more readable way (does the same thing)
+  git switch <branch-name>        <- switch to an existing branch (no -c)
+  git branch                      <- list all local branches
+
+  -c stands for CREATE — switch alone just switches, -c creates first then switches
+
+PUSHING A NEW BRANCH TO GITHUB:
+  git push -u origin <branch-name>
+  -u sets up tracking so future 'git push' knows where to send it
+  Only need -u the first time — after that just 'git push'
 
 ================================================================================
 PROGRAM DESIGN & STRUCTURE (to cover as project grows)
