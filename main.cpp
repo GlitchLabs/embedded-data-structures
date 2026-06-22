@@ -10,5 +10,19 @@ int main(){
     array.push_back(31459);
     for(size_t i = 0; i < 4; i++)
         std::cout << array.at(i) <<std::endl;
+
+    DynamicArray<int> array2 = array;
+    std::cout << "Copy: " << array2.at(0) <<std::endl;
+
+    int* a = new int[3];//new pointer to int array memory
+    a[0] = 10; a[1] = 20; a[2] = 30;
+
+    int* b = new int[3];//new pointer to memory holding contigous integer data
+
+    for(int i = 0; i < 3; i++)
+        *(b + i) = *(a + i);
+    std::cout << b[0] << " , " << b[1] << " ," << b[2]<<std::endl;
+    delete[] a;
+    delete[] b;
     return 0;
 }

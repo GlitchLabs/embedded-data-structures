@@ -99,6 +99,85 @@ COMPILER vs IDE — HOW THEY FIND HEADERS:
 - Fix: use the CMake Tools extension in VS Code to let the IDE read your CMakeLists.txt
   This syncs the IDE's understanding with the actual build system
 
+================================================================================
+MEMORY ALLOCATION & FREEING
+================================================================================
+
+ALLOCATING HEAP MEMORY:
+  int* a = new int[3];     <- ask heap for 3 ints, get back the address
+  T* data = new T[n];      <- same but templated
+- Heap finds a free block, marks it as yours, returns the address
+- Hotel analogy: new = checking in, heap gives you a room number
+
+FREEING HEAP MEMORY:
+  delete[] a;              <- return array memory back to heap
+  delete ptr;              <- return single object memory back to heap
+- Marks the block as available again — does NOT touch the pointer
+- Pointer still holds the old address after delete (dangling pointer risk)
+- Hotel analogy: delete = checking out, room available again but number still exists
+- Good practice: set to nullptr after deleting if not immediately reassigning
+    delete[] m_data;
+    m_data = nullptr;
+
+MANUAL DEEP COPY — raw pointers:
+  int* a = new int[3];
+  a[0] = 10; a[1] = 20; a[2] = 30;
+  int* b = new int[3];
+  for(int i = 0; i < 3; i++){
+      b[i] = a[i];        // b[i] and *(b+i) are identical
+  }
+  delete[] a;
+  delete[] b;
+- This is the exact same operation copy assignment does, just without the class wrapper
+- a and b are separate pointers pointing to separate heap blocks
+- Copying values in loop = deep copy, not shallow
+
+KEY INSIGHT — pointer vs memory:
+- The pointer (stack) and the heap memory it points to are TWO separate things
+- delete[] frees the heap memory, NOT the pointer variable
+- The pointer still exists holding the old address after delete
+- Once you overwrite the pointer with a new address, the old address is LOST FOREVER
+- Always free BEFORE overwriting the pointer
+
+================================================================================
+MEMORY MANAGEMENT ERRORS
+================================================================================
+
+MEMORY LEAK:
+- Heap memory allocated but never freed
+- Every new MUST have a matching delete
+- On desktop: OS reclaims on program exit
+- On embedded/bare metal: gone until hardware power cycled — mission critical danger
+
+DANGLING POINTER:
+- Pointer that holds an address to memory you no longer own
+- Caused by: freeing memory without updating the pointer
+- Reading/writing through a dangling pointer = undefined behavior
+- Fix: set pointer to nullptr after deleting
+
+DOUBLE FREE:
+- Calling delete[] on the same memory block twice
+- Caused by: shallow copy — two objects pointing at same heap memory
+  both destructors run, both try to free the same block
+- Result: undefined behavior, crash, or silent memory corruption
+
+SHALLOW COPY (leads to dangling pointer + double free):
+- Default compiler copy only copies the pointer address, not the heap data
+- Two objects point at same memory block
+- When one is destroyed: other has dangling pointer
+- When both destroyed: double free
+
+UNDEFINED BEHAVIOR:
+- Code that the C++ standard does not define — anything can happen
+- Common causes: dangling pointer, double free, out of bounds access, uninitialized variables
+- In embedded: can corrupt other data, crash system, cause silent wrong behavior
+- The compiler will NOT always catch it
+
+OFF BY ONE:
+- Accessing index >= size = reading uninitialized/unowned memory
+- Use < not <= when iterating over array elements
+
+================================================================================
 STACK vs HEAP:
 - Stack: automatic memory, where local variables and function calls live
   - Fixed, limited size
@@ -184,6 +263,96 @@ TEMPLATES:
   in main.cpp — if definition was in a .cpp file, compiler would never see it
 - Regular classes can split declaration (.hpp) and definition (.cpp)
   Templates cannot — they live entirely in headers
+
+WHAT A POINTER ACTUALLY IS:
+- A pointer is just a number — a memory address in hexadecimal
+- Example of what member variables actually look like in memory:
+    m_size     = 4                  <- just the number 4
+    m_capacity = 4                  <- just the number 4
+    m_data     = 0x7f8b4c002a00    <- a memory address (where the data lives)
+- ALL three sit on the stack as numbers
+- m_size/m_capacity: the number IS the value you care about
+- m_data: the number is a LOCATION — you have to go there to find actual data
+- "The map, not the territory"
+
+WHY POINTERS ARE FAST:
+- A pointer to a huge object is just 8 bytes (on 64 bit system) — the address
+- Passing by value: copies every byte of the object = slow for large objects
+- Passing by pointer/reference: copies one address = fast regardless of object size
+- This is why function parameters use const T& instead of T for large objects
+- Embedded engineers are careful about unnecessary copies — wasted time and memory
+
+PASSING BY VALUE vs BY REFERENCE — copy constructor example:
+- const DynamicArray<T> other   <- passes by VALUE, triggers copy constructor = infinite recursion!
+- const DynamicArray<T>& other  <- passes by REFERENCE, just an address, no copy made
+- Always pass large objects by const reference to avoid unnecessary copies
+
+SHALLOW COPY vs DEEP COPY:
+- Shallow copy: copies member variable VALUES directly, including pointer addresses
+  Result: two objects pointing at the SAME heap memory block
+  Dangers:
+    1. Dangling pointer — one object's destructor frees the memory, other object now points at freed memory
+    2. Double free — both destructors run, same memory deleted twice = undefined behavior / crash
+- Deep copy: allocates NEW memory and copies the actual DATA into it
+  Result: two independent objects with their own separate memory blocks
+  This is what a copy constructor must do when managing heap memory
+
+COPY CONSTRUCTION vs COPY ASSIGNMENT:
+- Copy construction: creating a brand new object from an existing one
+    DynamicArray<int> array2 = array1;  // array2 didn't exist before
+- Copy assignment: overwriting an ALREADY EXISTING object
+    DynamicArray<int> array2;           // array2 exists with its own memory
+    array2 = array1;                    // now overwrite it
+
+COPY ASSIGNMENT OPERATOR:
+- Signature: DynamicArray<T>& operator=(const DynamicArray<T>& other)
+- operator= is how you overload the = operator in C++
+- Returns reference to self (DynamicArray<T>&) to allow chaining: a = b = c
+- Extra step vs copy constructor: must free existing memory first or it leaks
+
+STEPS FOR COPY ASSIGNMENT:
+  1. Self-assignment guard — if(this == &other) return *this;
+  2. Delete existing heap memory — delete[] m_data
+  3. Copy m_size and m_capacity from other
+  4. Allocate new heap memory
+  5. Copy elements over in a loop
+  6. Point m_data at new memory
+  7. return *this
+
+SELF-ASSIGNMENT:
+- array1 = array1 — assigning object to itself
+- Without guard: deletes memory, then tries to copy FROM deleted memory = undefined behavior
+- Guard: if(this == &other) return *this;
+  'this' is a pointer to the current object
+  if same address as other, return early
+
+OPERATOR OVERLOADING:
+- C++ lets you redefine what operators do for your custom types
+- Keyword: operator followed by the operator symbol
+  operator=   copy assignment
+  operator+   addition
+  operator[]  array indexing
+  etc.
+- We will use operator[] later for cleaner array access syntax
+
+'this' POINTER:
+- Every non-static member function has access to 'this'
+- 'this' is a pointer to the object the method was called on
+- *this dereferences it — the object itself
+- Used in copy assignment to return a reference to self: return *this
+
+COPY vs MOVE CONSTRUCTOR:
+- Both have the same name as the class (like constructor/destructor)
+- Copy constructor: takes const reference to same type — const DynamicArray<T>&
+    DynamicArray(const DynamicArray<T>& other)
+    const = won't modify the original
+    & = reference, not a copy (copying would be recursive!)
+- Move constructor: takes rvalue reference — DynamicArray<T>&&
+    DynamicArray(DynamicArray<T>&& other)
+    transfers ownership instead of copying data
+
+TO LEARN: const keyword placement — different positions mean different things
+  (this confuses me, needs dedicated explanation)
 
 RULE OF THREE / RULE OF FIVE:
 - If you manage raw memory and need to define ANY of these, define ALL of them:

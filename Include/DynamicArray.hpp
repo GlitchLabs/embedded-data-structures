@@ -12,6 +12,36 @@ public:
     } 
 
     /*
+    copy constructor
+    */
+    DynamicArray(const DynamicArray<T>& other){
+     m_size = other.m_size;
+     m_capacity = other.m_capacity;
+     //performing a deep copy. a showllow copy would be just the address
+     T* newData = new T[m_capacity];
+     for(size_t i = 0; i < m_size; i ++){
+         *(newData + i) = other.m_data[i];
+     }
+     m_data = newData;
+ 
+    }
+
+    /*
+    Copy operator
+    */
+    DynamicArray<T>& operator=(const DynamicArray<T>& other){
+        if(this == &other) return *this;
+        m_size = other.m_size;
+        m_capacity = other.m_capacity;
+        delete[] m_data;
+        T* newData = new T[m_capacity];
+        for(size_t i = 0; i < m_size; i++){
+            *(newData + i) = *(other.m_data + i);
+        }
+        m_data = newData;
+        return *this;
+    }
+    /*
     Params: Data to be stored.
     Purpose: to add data to the back of the array.
     Returns: None
@@ -40,6 +70,7 @@ public:
     assert(index < m_size);
     return *(m_data + index);
    }
+
 
    //destructor
    ~DynamicArray(){
