@@ -624,6 +624,42 @@ CONCEPTS TO LEARN IN CONTEXT THROUGH THE PROJECT:
 NOTE: Learn these in context as the library grows, not from a textbook
 
 ================================================================================
+INTERVIEW REVIEW QUESTIONS
+================================================================================
+Practice these until the answers are automatic — these are real interview questions.
+
+1. What is a real-time embedded system and why does it matter for how you write code?
+   KEY TERMS: determinism, bare metal, timing guarantees, scarce resources
+
+2. What is the Rule of Three and why does it exist?
+   KEY TERMS: destructor, copy constructor, copy assignment operator, heap memory, resource management
+
+3. What is a dangling pointer and what causes one?
+   KEY TERMS: freed memory, pointer still holds address, shallow copy, destructor
+
+4. What is the difference between delete and delete[]?
+   KEY TERMS: single object vs array, destructor runs on first element only, undefined behavior
+
+5. Explain shallow copy vs deep copy and why it matters with heap memory.
+   KEY TERMS: copies address not data, dangling pointer, double free, deep copy allocates new memory
+
+6. What is assert and why do embedded engineers use it instead of exceptions?
+   KEY TERMS: stack unwinding, determinism, NDEBUG, release build, compile to nothing
+
+7. Walk me through the push_back grow sequence step by step.
+   KEY STEPS: check size==capacity, double capacity, allocate new memory, copy data,
+              delete old memory, point m_data at new block, add element, increment m_size
+
+8. What is the difference between copy construction and copy assignment?
+   KEY TERMS: new object vs existing object, self-assignment guard, free existing memory first
+
+9. Why do templated classes have to put both declaration and definition in the header?
+   KEY TERMS: compiler generates concrete class per type, needs full definition visible, translation unit
+
+10. What is CMake and what does Make do — how do they relate?
+    KEY TERMS: build system generator, generates Makefiles, Make compiles and links, architect/carpenter
+
+================================================================================
 BIG O NOTATION (intro)
 ================================================================================
 - Language for describing how an algorithm SCALES as input grows

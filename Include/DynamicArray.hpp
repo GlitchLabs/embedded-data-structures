@@ -42,6 +42,12 @@ public:
         return *this;
     }
     /*
+    Index operator
+    */
+   T & operator[](size_t index){
+        return *(m_data + index);
+   }
+    /*
     Params: Data to be stored.
     Purpose: to add data to the back of the array.
     Returns: None
@@ -76,6 +82,10 @@ public:
    ~DynamicArray(){
     delete[] m_data;
    }
+
+   size_t size() const {
+    return m_size;
+}
 private:
 size_t m_size;
 size_t m_capacity;

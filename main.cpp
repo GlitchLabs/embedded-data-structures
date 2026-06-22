@@ -24,5 +24,8 @@ int main(){
     std::cout << b[0] << " , " << b[1] << " ," << b[2]<<std::endl;
     delete[] a;
     delete[] b;
+
+    for(size_t i = 0; i < array2.size(); i++)
+        std::cout<<array2[i] <<std::endl;
     return 0;
 }
