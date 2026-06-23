@@ -11,133 +11,198 @@ ABOUT ME
 - Very logical, engineering minded — plan before building
 - Learn best in context, through projects
 - Tend to overload my plate — keep scope tight
+- Love mathematics — dream is to be a cyber-physical systems engineer
 - Recently doing self study: Codecademy (learned templates recently)
 
 SKILLS I HAVE:
 - OOP (solid)
-- Pointers (conceptual understanding)
+- Pointers (conceptual understanding, deepened through this project)
 - Heap vs stack (understand it, just needed terminology)
-- Memory leaks (knew the concept)
-- RAII (knew the concept, forgot the acronym)
+- Memory leaks, dangling pointers, RAII (knew concepts, now have the terms)
 - Templates (recently refreshed)
-- CMake (had used it before, forgot the workflow)
+- CMake (had used it before, forgot the workflow — now solid)
+- Mutex / race conditions (used at Lockheed, now understand formally)
 - Intuition for embedded constraints from Lockheed experience
+- Saw: beamformer, tracker subsystems at Lockheed (now understand what they are)
 
 GAPS TO FILL:
 - Formal terminology for concepts I already understand intuitively
-- Big O notation
-- CPU registers and architecture (32 bit vs 64 bit)
-- Bit manipulation
-- Concurrency
-- Performance optimization
-- size_t and fixed width types (seen them, didn't fully understand them)
+- Big O notation (intro done, need more practice)
+- CPU registers and architecture (32 bit vs 64 bit) — on roadmap
+- Bit manipulation — on roadmap
+- Concurrency / mutex in depth — on roadmap
+- Performance optimization — on roadmap
+- const keyword placement — confusing, needs dedicated session
+- State machines — critical for embedded, on roadmap
+
+================================================================================
+INTERVIEW FOCUS AREAS — MISSILE & DEFENCE SOFTWARE EFFECTORS ROLE
+================================================================================
+Role: Software effectors on missile systems — code that directly controls
+physical hardware (actuators, guidance). Safety-critical, real-time, panel interview.
+
+They specifically asked about:
+- C++ and OOP fundamentals
+- Real-time embedded systems
+- Scheduling
+- Priority inversion (interviewer name-dropped this — HIGH PRIORITY to know cold)
+
+STUDY FOCUS:
+1. C++ fundamentals — pointers, memory, OOP (in progress via project)
+2. Real-time concepts — determinism, scheduling, task priorities, deadlines
+3. RTOS — what it is, how it schedules tasks
+4. Priority inversion — what it is, why it's dangerous, how to solve it
+5. Embedded constraints — no dynamic allocation in hot paths, fixed-size buffers
+6. Safety mindset — failure modes, what happens when things go wrong
+7. State machines — everywhere in embedded systems
+
+================================================================================
+PROJECT: EMBEDDED DATA STRUCTURES LIBRARY
+================================================================================
+GitHub: github.com/GlitchLabs/embedded-data-structures
+Branch strategy: feature branches -> PR -> merge to main
+
+GOAL: Build a reusable data structures library without STL, from scratch
+      Simulates what real embedded engineers actually write
+
+ROADMAP:
+  1. Dynamic Array    [COMPLETE] — memory, pointers, templates, Rule of Three
+  2. Linked List      [IN PROGRESS] — nodes, traversal, Rule of Three
+  3. Queue or Stack   — built on linked list, connects to task scheduling
+  4. Bit flags        — bit manipulation
+  5. Thread safety    — mutex, concurrency, priority inversion in practice
+  6. Profiling        — performance, Big O in practice, AddressSanitizer
+
+LEARNING STRUCTURE:
+  - After each concept: explain it back in own words
+  - After each feature: small coding challenge without help
+  - Every few topics: mini review session from notes
 
 ================================================================================
 TOOLS & ENVIRONMENT
 ================================================================================
 
 CMAKE:
-- CMake is a build system GENERATOR — it does NOT compile your code
-- It reads CMakeLists.txt and generates instructions (like Makefiles) for the
-  actual build tool to follow
+- CMake is a build system GENERATOR — it does NOT compile code
+- Reads CMakeLists.txt and generates instructions (Makefiles) for Make to follow
 - Analogy: CMake is the ARCHITECT, Make is the CARPENTER
-- Make reads CMake's generated Makefiles and does the actual compiling/linking
 
 CMAKE WORKFLOW:
   mkdir build
   cd build
-  cmake ..       <- points CMake at parent directory where CMakeLists.txt lives
-  make           <- actually compiles and links your code
-
-CMakeLists.txt STRUCTURE:
-  cmake_minimum_required(VERSION 3.10)   <- minimum cmake version needed
-  project(projectName)                   <- declares project name
-  add_executable(targetName source.cpp)  <- what to build and from what files
-  target_include_directories(targetName ACCESS_LEVEL folderName) <- where headers live
-
-- add_executable must come BEFORE target_include_directories — CMake reads top to bottom
-  the target must exist before you can configure it
-
-target_include_directories ACCESS LEVELS:
-  PRIVATE   — only this target needs these headers (use this for executables)
-  PUBLIC    — this target AND anything linking to it gets the headers
-  INTERFACE — this target doesn't need them but anything linking to it does
-
-- Build directory keeps generated files separate from source files (clean)
-- To add a new .cpp file: add it to add_executable(), then re-run cmake .. and make
-- Installed version: 3.10 is a safe minimum (system has 3.31.0)
+  cmake ..    <- points CMake at parent directory where CMakeLists.txt lives
+  make        <- actually compiles and links
 
 WHEN TO RUN cmake .. vs make:
-- cmake ..: only when project STRUCTURE changes
-    adding new source files
-    adding new include directories
-    changing CMakeLists.txt
+- cmake ..: only when project STRUCTURE changes (new files, new dirs, CMakeLists.txt)
 - make: anytime you change code inside existing files
-- Day to day workflow: just make then ./LLCPP
-- INCREMENTAL BUILDS: Make only recompiles files that changed — smart and efficient
-  If main.cpp didn't change, Make skips it entirely
+- INCREMENTAL BUILDS: Make only recompiles files that changed
 
-================================================================================
-C++ CONCEPTS
-================================================================================
+CMakeLists.txt STRUCTURE:
+  cmake_minimum_required(VERSION 3.10)
+  project(projectName)
+  add_executable(targetName source.cpp)
+  target_include_directories(targetName PRIVATE folderName)
+
+  - add_executable MUST come before target_include_directories
+  - ACCESS LEVELS: PRIVATE (this target only), PUBLIC (this + dependents), INTERFACE (dependents only)
 
 HOW #include WORKS:
-- #include is like copy-pasting the header's contents into the file that includes it
-- The compiler ONLY processes files pulled into the build via #include or add_executable
-- A header sitting on disk is just a text file — compiler never sees it until something includes it
-- You can have a syntax error in a header and the build succeeds if nothing includes it
-- Always include your headers in a .cpp file to actually get them compiled and checked
+- #include = copy-pasting the header into the file that includes it
+- Compiler ONLY sees files pulled in via #include or add_executable
+- Header sitting on disk is invisible to compiler until included
+- Syntax error in header won't show until something includes it
 
 COMPILER vs IDE — HOW THEY FIND HEADERS:
-- These are TWO separate systems that both need to know where your headers are
-- The COMPILER (invoked by make) uses CMakeLists.txt — target_include_directories tells it where to look
-  If make builds cleanly, the compiler found everything it needed
-- The IDE (VS Code etc.) has its own separate header resolution system for features like
-  autocomplete, error highlighting, and go-to-definition
-  It does NOT automatically read CMakeLists.txt unless configured to do so
-- An IDE include error does NOT mean your code won't compile — always check make first
-- Fix: use the CMake Tools extension in VS Code to let the IDE read your CMakeLists.txt
-  This syncs the IDE's understanding with the actual build system
+- Two separate systems — compiler uses CMakeLists.txt, IDE has its own system
+- IDE include error does NOT mean code won't compile — always check make first
+- Fix: CMake Tools extension in VS Code + run CMake: Configure
+
+INTELLISENSE (VS Code):
+- Powers autocomplete, parameter hints, error highlighting, go-to-definition
+- Needs to be synced with CMake — run CMake: Configure or reset IntelliSense database
+- Can disable inline suggestions while learning (good for building recall)
 
 ================================================================================
-MEMORY ALLOCATION & FREEING
+GIT & GITHUB
 ================================================================================
 
-ALLOCATING HEAP MEMORY:
-  int* a = new int[3];     <- ask heap for 3 ints, get back the address
-  T* data = new T[n];      <- same but templated
-- Heap finds a free block, marks it as yours, returns the address
-- Hotel analogy: new = checking in, heap gives you a room number
+THREE STEP WORKFLOW:
+  git add <files>     <- stage specific files (be explicit, not git add .)
+  git commit -m ""    <- commit with message
+  git push            <- push to remote
 
-FREEING HEAP MEMORY:
-  delete[] a;              <- return array memory back to heap
-  delete ptr;              <- return single object memory back to heap
-- Marks the block as available again — does NOT touch the pointer
-- Pointer still holds the old address after delete (dangling pointer risk)
-- Hotel analogy: delete = checking out, room available again but number still exists
-- Good practice: set to nullptr after deleting if not immediately reassigning
-    delete[] m_data;
-    m_data = nullptr;
+COMMIT MESSAGE CONVENTION:
+  First line: short summary, under 50 chars, imperative tense ("Add" not "Added")
+  Blank line + body if needed
 
-MANUAL DEEP COPY — raw pointers:
-  int* a = new int[3];
-  a[0] = 10; a[1] = 20; a[2] = 30;
-  int* b = new int[3];
-  for(int i = 0; i < 3; i++){
-      b[i] = a[i];        // b[i] and *(b+i) are identical
-  }
-  delete[] a;
-  delete[] b;
-- This is the exact same operation copy assignment does, just without the class wrapper
-- a and b are separate pointers pointing to separate heap blocks
-- Copying values in loop = deep copy, not shallow
+ATOMIC COMMITS: each commit = one logical change
 
-KEY INSIGHT — pointer vs memory:
-- The pointer (stack) and the heap memory it points to are TWO separate things
-- delete[] frees the heap memory, NOT the pointer variable
-- The pointer still exists holding the old address after delete
-- Once you overwrite the pointer with a new address, the old address is LOST FOREVER
-- Always free BEFORE overwriting the pointer
+.gitignore: commit this file — teammates need it too
+
+BRANCH COMMANDS:
+  git switch -c <branch>    <- create and switch (-c = create)
+  git switch <branch>       <- switch to existing branch
+  git push -u origin <branch>  <- push new branch (-u sets tracking, first time only)
+  git branch                <- list branches
+
+STRATEGY: Never commit to main directly — always feature branch -> PR -> merge
+
+================================================================================
+MEMORY MANAGEMENT
+================================================================================
+
+STACK vs HEAP:
+- Stack: automatic, local variables and function calls, fixed size, freed on scope exit
+  In embedded: blowing the stack (deep recursion, large locals) = crash, no OS to save you
+- Heap: intentional, requested with new, YOU must free with delete
+  Unpredictable timing — bad for real-time systems
+
+ALLOCATING & FREEING:
+  new T[n]    <- allocate array on heap, returns address of first element
+  delete[] p  <- free array heap memory (runs destructor on each element)
+  delete p    <- free single object heap memory
+  ALWAYS match: new[] with delete[], new with delete — compiler won't catch mismatches
+
+WHAT delete[] ACTUALLY DOES:
+- Runs destructor on each element (if T has one)
+- Returns memory to heap — marks it available again
+- Does NOT touch the pointer — pointer still holds old address (dangling pointer risk)
+
+DELETE ORDER MATTERS:
+  Wrong: m_data = newData;  then  delete[] newData;  <- deletes what you just assigned!
+  Right: delete[] m_data;   then  m_data = newData;  <- free old first, then reassign
+
+WHAT A POINTER ACTUALLY IS:
+- Just a number — a memory address in hexadecimal (e.g. 0x7f8b4c002a00)
+- m_size = 4 (the number IS the value), m_data = 0xAAA (the number is a LOCATION)
+- "The map, not the territory"
+- On 64 bit system: pointer is 8 bytes regardless of what it points to
+
+WHY POINTERS ARE FAST:
+- Passing large object by value = copying every byte
+- Passing by pointer/reference = copying one 8-byte address
+- Always pass large objects by const reference: const T& not T
+
+POINTER ARITHMETIC:
+  array[i]  ==  *(array + i)  — identical, compiler does: base + (i * sizeof(T))
+  Arrays must be contiguous — the math only works if elements are adjacent
+
+LOCAL POINTER VARIABLES — no cleanup needed:
+- Local variables live on the stack, destroyed automatically when scope ends
+- Only delete heap memory (new), only nullptr member variables accessed after deletion
+- Rule: stack takes care of itself, heap is YOUR responsibility
+
+HOTEL ANALOGY:
+- new = checking in, heap gives you a room number
+- delete = checking out, room available again but number still exists in your hand
+- Dangling pointer = holding a room number to a room that's been given to someone else
+
+HEAP FRAGMENTATION:
+- Long-running systems fragment heap: [used][free][used][free]
+- Dynamic array CANNOT use fragmented memory — needs contiguous block
+- Linked list CAN — each small node fits anywhere
+- Embedded solution: static allocation (fixed buffers at compile time)
 
 ================================================================================
 MEMORY MANAGEMENT ERRORS
@@ -145,530 +210,371 @@ MEMORY MANAGEMENT ERRORS
 
 MEMORY LEAK:
 - Heap memory allocated but never freed
+- Desktop: OS reclaims on exit. Bare metal embedded: gone until power cycle
+- On a missile running 24/7: mission critical — a leak = eventual system failure
 - Every new MUST have a matching delete
-- On desktop: OS reclaims on program exit
-- On embedded/bare metal: gone until hardware power cycled — mission critical danger
 
 DANGLING POINTER:
-- Pointer that holds an address to memory you no longer own
-- Caused by: freeing memory without updating the pointer
-- Reading/writing through a dangling pointer = undefined behavior
-- Fix: set pointer to nullptr after deleting
+- Pointer holding address to memory you no longer own (freed)
+- Causes: deleting without nulling pointer, shallow copy + destructor
+- Reading/writing through it = undefined behavior
+- Fix: set to nullptr after deleting (if not immediately reassigning)
 
 DOUBLE FREE:
-- Calling delete[] on the same memory block twice
-- Caused by: shallow copy — two objects pointing at same heap memory
-  both destructors run, both try to free the same block
-- Result: undefined behavior, crash, or silent memory corruption
+- Calling delete on same memory block twice
+- Caused by shallow copy — two objects pointing at same heap memory, both destructors run
+- Result: undefined behavior, crash, silent corruption
 
 SHALLOW COPY (leads to dangling pointer + double free):
-- Default compiler copy only copies the pointer address, not the heap data
-- Two objects point at same memory block
-- When one is destroyed: other has dangling pointer
-- When both destroyed: double free
+- Default compiler copy copies pointer ADDRESS not heap DATA
+- Two objects point at same block
+- Destructor of one: other gets dangling pointer
+- Destructor of both: double free
 
 UNDEFINED BEHAVIOR:
-- Code that the C++ standard does not define — anything can happen
-- Common causes: dangling pointer, double free, out of bounds access, uninitialized variables
-- In embedded: can corrupt other data, crash system, cause silent wrong behavior
-- The compiler will NOT always catch it
+- C++ standard doesn't define what happens — anything can occur
+- Common causes: dangling pointer, double free, out of bounds, uninitialized vars
+- Compiler will NOT always catch it
+- In embedded: can corrupt other subsystem data, cause silent wrong behavior
 
 OFF BY ONE:
-- Accessing index >= size = reading uninitialized/unowned memory
-- Use < not <= when iterating over array elements
+- m_size = 3: valid indexes 0, 1, 2
+- i < m_size  ✓    i <= m_size  ✗ (reads memory you don't own)
 
 ================================================================================
-STACK vs HEAP:
-- Stack: automatic memory, where local variables and function calls live
-  - Fixed, limited size
-  - Memory freed automatically when variable goes out of scope
-  - In embedded: blowing the stack (deep recursion, large locals) = crash, no OS to save you
-- Heap: intentional memory, requested with 'new', must be freed with 'delete'
-  - You ask for it, you are responsible for giving it back
-  - Unpredictable timing (bad for real time systems)
-
-MEMORY LEAK:
-- When heap memory is allocated but never freed
-- On a desktop app: OS reclaims memory when program exits
-- On embedded system running 24/7: slowly consumes all RAM until system crashes
-- On bare metal embedded (no OS): leaked memory is gone until hardware is power cycled
-  No OS means no cleanup — ever. A leak during a mission = potential mission failure
-- Every new MUST have a matching delete — embedded engineers are paranoid about this
-
-OFF BY ONE ERROR:
-- Classic bug with array loops — going one index too far
-- m_size = 3 means valid indexes are 0, 1, 2
-  i < m_size  -> i = 0, 1, 2        <- correct
-  i <= m_size -> i = 0, 1, 2, 3     <- reads memory you don't own = undefined behavior
-- Always use < not <= when iterating over array elements
-
-WHAT delete[] ACTUALLY DOES:
-- Runs the destructor on each element (if T has one)
-- Returns the memory to the heap — marks those shelves as available again
-- Does NOT touch the pointer itself — pointer still holds the old address after delete
-- That's called a DANGLING POINTER — holds an address to memory you no longer own
-- Always reassign or set to nullptr after deleting to avoid dangling pointers
-
-DELETE ORDER MATTERS — avoid losing your only pointer:
-- Wrong order:
-    m_data = newData;   // old memory address lost forever = MEMORY LEAK
-    delete[] newData;   // deletes the new memory you just assigned to m_data!
-- Right order:
-    delete[] m_data;    // free old memory first while you still have the address
-    m_data = newData;   // now safely point to new memory
-- Cutting off the only pointer to heap memory = that memory is leaked forever
+C++ CONCEPTS
+================================================================================
 
 RAII (Resource Acquisition Is Initialization):
-- Tying a resource (like heap memory) to an object's lifetime
-- When the object goes out of scope, the destructor cleans up the resource automatically
-- Prevents memory leaks by making cleanup automatic
-
-UNDEFINED BEHAVIOR:
-- Uninitialized pointer pointing at random memory = ticking time bomb
-- Always initialize pointers to nullptr if not pointing at anything yet
+- Tie resource lifetime to object lifetime
+- Destructor cleans up automatically when object goes out of scope
+- Prevents memory leaks
 
 NULLPTR:
-- Explicit way to say "this pointer points at nothing"
-- Always use instead of leaving a pointer uninitialized
+- Explicit "this pointer points at nothing" — always use instead of leaving uninitialized
 
 SIZE_T:
-- Unsigned integer type designed for representing sizes and counts
-- Can't be negative (a negative size makes no sense)
-- Automatically matches the platform size (32 bit system = 32 bit size_t, etc.)
-- Lives in <cstddef>
-- Use for: size, capacity, array indices, loop counters over collections
+- Unsigned integer for sizes and counts — can't be negative
+- Matches platform size automatically (32 bit = 32 bit size_t)
+- Lives in <cstddef>. Use for: size, capacity, indices, loop counters
 
-FIXED WIDTH TYPES (from <cstdint>):
-- uint32_t, uint16_t, int8_t etc.
-- Guarantee exact size regardless of platform
-- Critical in embedded systems where hardware varies and resources are scarce
-- Seen a lot at Lockheed — now I know why
+FIXED WIDTH TYPES (<cstdint>):
+- uint32_t, uint16_t, int8_t — guaranteed size regardless of platform
+- Critical in embedded where hardware varies and resources are scarce
 
 DECLARATION vs DEFINITION:
-- Declaration: telling the compiler "this thing exists, here's its name and shape"
-- Definition: the actual implementation, the body of the code
+- Declaration: "this thing exists, here's its name and shape"
+- Definition: the actual implementation, the body
 
 TEMPLATES:
-- Allow a class or function to work with any type
-- Syntax: template<typename T> above the class or function
-- 'typename' and 'class' are interchangeable in this context (typename is more modern)
-- T is used wherever a type would normally go
-- DynamicArray<T> alone is NOT valid — T is unknown, compiler can't compile it
-- Only when you provide a type (DynamicArray<int>) does the compiler generate real code
-- The compiler generates a new CONCRETE CLASS for each type you use
-  ex: DynamicArray<int>, DynamicArray<float>, DynamicArray<MyStruct> are all
-  different generated classes under the hood
-- For templated classes: both declaration AND definition go in the header file
-- WHY: compiler needs the full definition visible when it sees DynamicArray<int>
-  in main.cpp — if definition was in a .cpp file, compiler would never see it
-- Regular classes can split declaration (.hpp) and definition (.cpp)
-  Templates cannot — they live entirely in headers
+- Allow class/function to work with any type: template<typename T>
+- typename and class are interchangeable (typename is more modern)
+- DynamicArray<T> alone is invalid — T unknown, can't compile
+- DynamicArray<int> triggers compiler to generate a concrete class for int
+- Both declaration AND definition go in header — compiler needs full definition visible
+- Regular classes can split .hpp/.cpp — templates cannot
 
-WHAT A POINTER ACTUALLY IS:
-- A pointer is just a number — a memory address in hexadecimal
-- Example of what member variables actually look like in memory:
-    m_size     = 4                  <- just the number 4
-    m_capacity = 4                  <- just the number 4
-    m_data     = 0x7f8b4c002a00    <- a memory address (where the data lives)
-- ALL three sit on the stack as numbers
-- m_size/m_capacity: the number IS the value you care about
-- m_data: the number is a LOCATION — you have to go there to find actual data
-- "The map, not the territory"
+CONCRETE vs ABSTRACT CLASS:
+- Abstract: has pure virtual function, cannot be instantiated, defines interface
+- Concrete: fully implemented, can be instantiated
 
-WHY POINTERS ARE FAST:
-- A pointer to a huge object is just 8 bytes (on 64 bit system) — the address
-- Passing by value: copies every byte of the object = slow for large objects
-- Passing by pointer/reference: copies one address = fast regardless of object size
-- This is why function parameters use const T& instead of T for large objects
-- Embedded engineers are careful about unnecessary copies — wasted time and memory
+IN-CLASS MEMBER INITIALIZATION (C++11):
+  Node<T>* next = nullptr;  <- set at declaration
+- Initializer list takes precedence if both present
+- Good for simple defaults
 
-PASSING BY VALUE vs BY REFERENCE — copy constructor example:
-- const DynamicArray<T> other   <- passes by VALUE, triggers copy constructor = infinite recursion!
-- const DynamicArray<T>& other  <- passes by REFERENCE, just an address, no copy made
-- Always pass large objects by const reference to avoid unnecessary copies
-
-SHALLOW COPY vs DEEP COPY:
-- Shallow copy: copies member variable VALUES directly, including pointer addresses
-  Result: two objects pointing at the SAME heap memory block
-  Dangers:
-    1. Dangling pointer — one object's destructor frees the memory, other object now points at freed memory
-    2. Double free — both destructors run, same memory deleted twice = undefined behavior / crash
-- Deep copy: allocates NEW memory and copies the actual DATA into it
-  Result: two independent objects with their own separate memory blocks
-  This is what a copy constructor must do when managing heap memory
-
-COPY CONSTRUCTION vs COPY ASSIGNMENT:
-- Copy construction: creating a brand new object from an existing one
-    DynamicArray<int> array2 = array1;  // array2 didn't exist before
-- Copy assignment: overwriting an ALREADY EXISTING object
-    DynamicArray<int> array2;           // array2 exists with its own memory
-    array2 = array1;                    // now overwrite it
-
-COPY ASSIGNMENT OPERATOR:
-- Signature: DynamicArray<T>& operator=(const DynamicArray<T>& other)
-- operator= is how you overload the = operator in C++
-- Returns reference to self (DynamicArray<T>&) to allow chaining: a = b = c
-- Extra step vs copy constructor: must free existing memory first or it leaks
-
-STEPS FOR COPY ASSIGNMENT:
-  1. Self-assignment guard — if(this == &other) return *this;
-  2. Delete existing heap memory — delete[] m_data
-  3. Copy m_size and m_capacity from other
-  4. Allocate new heap memory
-  5. Copy elements over in a loop
-  6. Point m_data at new memory
-  7. return *this
-
-SELF-ASSIGNMENT:
-- array1 = array1 — assigning object to itself
-- Without guard: deletes memory, then tries to copy FROM deleted memory = undefined behavior
-- Guard: if(this == &other) return *this;
-  'this' is a pointer to the current object
-  if same address as other, return early
+DOT vs ARROW OPERATOR:
+- . (dot): access member through object
+- -> (arrow): access member through pointer — shorthand for (*ptr).member
+- Linked lists use -> everywhere — nodes are always pointers
 
 OPERATOR OVERLOADING:
-- C++ lets you redefine what operators do for your custom types
-- Keyword: operator followed by the operator symbol
-  operator=   copy assignment
-  operator+   addition
-  operator[]  array indexing
-  etc.
-- We will use operator[] later for cleaner array access syntax
+- Redefine what operators do for custom types
+- operator=  (copy assignment), operator[]  (subscript), operator+  (addition)
 
 'this' POINTER:
-- Every non-static member function has access to 'this'
-- 'this' is a pointer to the object the method was called on
-- *this dereferences it — the object itself
-- Used in copy assignment to return a reference to self: return *this
+- Pointer to the object the method was called on
+- *this = the object itself
+- Used in copy assignment: return *this
 
-COPY vs MOVE CONSTRUCTOR:
-- Both have the same name as the class (like constructor/destructor)
-- Copy constructor: takes const reference to same type — const DynamicArray<T>&
-    DynamicArray(const DynamicArray<T>& other)
-    const = won't modify the original
-    & = reference, not a copy (copying would be recursive!)
-- Move constructor: takes rvalue reference — DynamicArray<T>&&
-    DynamicArray(DynamicArray<T>&& other)
-    transfers ownership instead of copying data
+LAZY vs EAGER INITIALIZATION:
+- Lazy: don't allocate until needed (right for embedded — scarce resources)
+- Eager: allocate upfront (convenient but wasteful)
 
-TO LEARN: const keyword placement — different positions mean different things
-  (this confuses me, needs dedicated explanation)
+ASSERT:
+  #include <cassert>
+  assert(condition);  <- halts program if false, reports location
+- Debug builds: active. Release builds (NDEBUG defined): compiles to nothing
+- Use for: programmer errors, states that should never happen
+- Embedded: use assert in debug, error codes in production, never exceptions
 
-RULE OF THREE / RULE OF FIVE:
-- If you manage raw memory and need to define ANY of these, define ALL of them:
+EXCEPTIONS IN EMBEDDED:
+- Stack unwinding = unpredictable timing = breaks determinism
+- Many embedded compilers disable exceptions entirely
+- Rule: exceptions are off the table in embedded
 
-  RULE OF THREE (C++03 and earlier):
-  1. Destructor          — clean up heap memory when object goes out of scope
-  2. Copy constructor    — what happens when you copy the object
-  3. Copy assignment     — what happens when you assign one object to another
+TERNARY OPERATOR:
+  condition ? value_if_true : value_if_false
+  m_capacity = (m_capacity == 0) ? 1 : m_capacity * 2;
 
-  RULE OF FIVE (modern C++11 and later, adds):
-  4. Move constructor    — transfer ownership instead of copying (more efficient)
-  5. Move assignment     — same but for assignment
+================================================================================
+OOP & CLASS DESIGN
+================================================================================
 
-- WHY: if you manage raw memory, compiler-generated versions do the WRONG thing
-  (shallow copy — copies the pointer, not the data — two objects pointing at same memory)
-- We are writing embedded-style C++ so Rule of Three is the priority
-- Rule of Five adds move semantics which are a modern C++ optimization
+RULE OF THREE (C++03):
+If you manage raw memory and define ANY of these, define ALL THREE:
+1. Destructor          — free heap memory when object goes out of scope (~ClassName)
+2. Copy constructor    — deep copy when creating new object from existing
+3. Copy assignment     — deep copy when overwriting existing object (operator=)
+WHY: compiler-generated versions do shallow copy = dangling pointer + double free
 
-C++ VERSIONS AND EMBEDDED STYLE:
-- C++03 and earlier: Rule of Three (copy only)
-- C++11 and later (modern C++): Rule of Five — adds move semantics
-- Move semantics: transfer OWNERSHIP of heap memory instead of copying it
-  Instead of allocating new memory and copying all elements, just hand over the pointer
-  Much more efficient than copying
-- We write modern C++ (C++11+) but in EMBEDDED STYLE:
-  Prioritize explicit control and determinism over convenience features
-  Rule of Three first, move semantics later
+RULE OF FIVE (C++11+):
+Adds to Rule of Three:
+4. Move constructor   — transfer ownership (DynamicArray<T>&& other)
+5. Move assignment    — transfer ownership on assignment
+Move = hand over the pointer, don't copy. Much more efficient.
+We write embedded-style C++ — Rule of Three first, move semantics later.
 
 DESTRUCTOR:
 - Runs automatically when object goes out of scope
-- Responsible for freeing heap memory the object owns
-- Without it: m_data is never deleted = memory leak every time DynamicArray is destroyed
 - Syntax: ~ClassName() { }
+- Linked list destructor must traverse and delete each node individually
+  (each node is a separate heap allocation)
+  Pattern: save next, delete current, advance
+    while(m_head != nullptr) {
+        Node<T>* next = m_head->next;
+        delete m_head;
+        m_head = next;
+    }
 
-CONCRETE vs ABSTRACT CLASS (OOP):
-- Abstract class: has at least one pure virtual function, cannot be instantiated
-  defines an interface that subclasses MUST implement
-- Concrete class: fully implemented, no unimplemented methods, CAN be instantiated
-- In template context: "concrete" means a real fully-typed compilable class
-  as opposed to the abstract template DynamicArray<T>
+COPY CONSTRUCTOR:
+- Triggered when: DynamicArray<int> array2 = array1; (array2 is new)
+- Signature: DynamicArray(const DynamicArray<T>& other)
+- Must do deep copy — allocate new memory, copy data
 
-EXCEPTIONS IN EMBEDDED SYSTEMS:
-- Exceptions use stack unwinding — runtime unwinds the call stack cleaning up objects
-- Stack unwinding takes unpredictable time = breaks determinism
-- Many embedded compilers disable exceptions entirely to save space and avoid overhead
-- Some real time operating systems don't support them at all
-- Rule: exceptions are usually off the table in embedded
+COPY ASSIGNMENT OPERATOR:
+- Triggered when: array2 = array1; (array2 already exists)
+- Signature: DynamicArray<T>& operator=(const DynamicArray<T>& other)
+- Returns *this to allow chaining (a = b = c)
+- Extra steps: self-assignment guard + free existing memory first
+  Steps: guard -> delete existing -> copy size/capacity -> allocate -> copy data -> return *this
+- Self-assignment guard: if(this == &other) return *this;
 
-ERROR HANDLING OPTIONS IN EMBEDDED (in place of exceptions):
-1. assert(condition) — halts program immediately if condition is false
-   - Debug builds: active, catches bugs early
-   - Release builds: NDEBUG flag defined, assert compiles to nothing (no-op)
-   - Same code, different behavior depending on build mode
-   - Use for: catching programmer errors, invalid states that should never happen
-2. Error codes — return a status, pass value out through a reference parameter
-   - Common in production embedded code
-   - Seen at Lockheed in logging systems
-3. Return default constructed T{} — works for any type but caller can't distinguish error from real data
-4. Return pointer — nullptr on failure, valid pointer on success
+ENCAPSULATION:
+- Keep member variables private
+- Expose behavior through public methods, not raw internals
+- Getters for read access (size()), no direct pointer exposure
 
-BEST PRACTICE IN EMBEDDED:
-- assert() in debug builds to catch bugs during development
-- Error codes in production for recoverable errors
-- Never exceptions
+================================================================================
+DATA STRUCTURES
+================================================================================
 
-ASSERT SYNTAX:
-  #include <cassert>
-  assert(condition that should be TRUE);
-  // if condition is false: program halts immediately and reports where
-  // example: assert(index < m_size);
+DYNAMIC ARRAY:
+Member variables: T* m_data, size_t m_size, size_t m_capacity
+Growth strategy (doubling):
+  1. Check if size == capacity
+  2. New capacity = (capacity == 0) ? 1 : capacity * 2
+  3. Allocate new heap block
+  4. Copy old data
+  5. Delete old block
+  6. Point m_data at new block
+  7. Add element, increment size
+Big O: lookup O(1), append amortized O(1), insert middle O(n), growth O(n)
 
-PREPROCESSOR DIRECTIVES & BUILD MODES:
-- NDEBUG (No Debug) — compiler flag set in release/production builds
-- assert() checks NDEBUG automatically:
-    debug build:   assert is active
-    release build: assert compiles to nothing (zero cost)
-- Same source code behaves differently based on build configuration
+LINKED LIST:
+Node struct: T value, Node<T>* next = nullptr
+Member variables: Node<T>* m_head, Node<T>* m_tail, size_t m_size
+- m_tail: O(1) append (without it: O(n) to find end)
+- Use -> to access node members (nodes are always pointers)
 
-LAZY vs EAGER INITIALIZATION:
-- Lazy: don't allocate resources until you actually need them
-  - Better for real time embedded: scarce resources, unknown hardware
-  - Let the engineer decide capacity — they know the hardware
-- Eager: allocate upfront, ready to go immediately
-  - Convenient but wastes resources if you never use them
+Dynamic Array vs Linked List:
+  Dynamic Array: O(1) lookup, O(n) insert/delete middle, needs contiguous memory
+  Linked List:   O(n) lookup, O(1) insert/delete (with pointer), scattered memory OK
+  Linked list advantage in embedded: works with fragmented heap
 
 ================================================================================
 REAL TIME EMBEDDED SYSTEMS
 ================================================================================
 
-FIRMWARE:
-- Firmware IS real software — not "in between" hardware and software, that's imprecise
-- Software written specifically to control hardware directly
-- Stored in non-volatile memory (flash memory) on the chip itself
-- Tightly coupled to specific hardware — not portable like application software
-- Firmware engineers write C and C++ — real code, real logic, real bugs
-- Likely what you'd be writing at the new role
-
-PROGRAM vs SOFTWARE vs FIRMWARE:
-- Program: a specific executable, one thing that runs
-- Software: broader term, collection of programs, libraries, a whole system
-- Firmware: software burned onto hardware, runs without an OS
-
-WHY "BURNED":
-- Old term from ROM chips (Read Only Memory) — data written using a ROM burner device
-  using electrical signals, permanent and non-erasable
-- Modern chips use FLASH memory — erasable and rewritable
-- "Burned" stuck around out of habit, still used constantly in the industry
-
-MEMORY LEAK DETECTION TOOLS:
-- Valgrind: runs your program through it, tracks every allocation, reports what was never freed
-  Common on Mac/Linux
-- AddressSanitizer: built into clang, add a compiler flag and it instruments your code automatically
-  Easier to use than Valgrind on Mac
-  We will use this in the performance section
-
-new[] vs delete[] vs new vs delete:
-- ALWAYS match: new[] with delete[], and new with delete
-- T* pointer doesn't tell you if it points to one element or an array — YOU have to remember
-- Using delete instead of delete[] on an array = undefined behavior, only destroys first element
-- The compiler will NOT catch this mismatch
-
-================================================================================
-
 EMBEDDED:
-- Software running on dedicated hardware with a specific purpose
-- Not a general purpose computer
-- Examples: microcontrollers, FPGAs, sensors, guidance systems
-- Often: limited RAM, no hard drive, sometimes no OS at all
+- Software on dedicated hardware with specific purpose
+- Often: limited RAM, no hard drive, sometimes no OS (bare metal)
+- Examples: microcontrollers, FPGAs, guidance systems
 
 REAL TIME:
-- Software has TIMING GUARANTEES
-- Not just "fast" — operations MUST complete within X microseconds, every time
-- Missing a deadline = correctness failure, not just a performance problem
-- Example: guidance system that calculates course correction 10ms too late is WRONG
+- Timing guarantees — operations MUST complete within X microseconds, every time
+- Missing a deadline = correctness failure, not just performance problem
+- KEY TERM: DETERMINISM — not just fast, predictably fast
 
-WHY STL IS OFTEN AVOIDED IN EMBEDDED:
-- std::vector, std::string etc. use dynamic memory allocation internally
-- Dynamic allocation has unpredictable timing — unacceptable in real time systems
-- STL overhead can be too large for resource constrained hardware
-- Some embedded environments don't have full STL available
-- Solution: roll your own — know exactly what the code does and how long it takes
+FIRMWARE:
+- Real software burned onto hardware, runs without OS
+- "Burned" from old ROM chip days — now uses flash memory (erasable)
+- Firmware engineers write C and C++ — real code, real bugs
 
-================================================================================
-PROJECT: LOW LEVEL DATA STRUCTURES LIBRARY
-================================================================================
+WHY STL IS AVOIDED IN EMBEDDED:
+- Dynamic allocation has unpredictable timing — breaks determinism
+- STL overhead too large for resource constrained hardware
+- Solution: roll your own — know exactly what code does and how long it takes
 
-GOAL: Build a reusable data structures library without STL, from scratch
-      Simulates what real embedded engineers actually write
+MEMORY vs RAM:
+- RAM: physical hardware, stores data while running (where stack and heap live)
+- Memory: broader — RAM, flash, ROM, cache, registers
+- "Scarce resources" in embedded usually means RAM
 
-ROADMAP:
-  1. Dynamic Array        <- currently building (memory + pointers + templates)
-  2. Linked List          (pointers + structs)
-  3. Queue or Stack       (built on top of linked list)
-  4. Bit flags            (bit manipulation)
-  5. Thread safety        (concurrency)
-  6. Profiling            (performance + Big O in practice)
-
-LEARNING STRUCTURE:
-  - After each concept: explain it back in my own words
-  - After each feature: small coding challenge without help
-  - Every few topics: mini review session revisiting older concepts
-
-POINTERS AND ARRAY INDEXING UNDER THE HOOD:
-- A pointer holds the address of the FIRST element only
-- The compiler finds other elements using math:
-    address of element[i] = base address + (i * sizeof(T))
-- When you write newData[2], the compiler turns that into:
-    "go to base address, skip forward 2 elements worth of bytes, read what's there"
-- This is why arrays MUST be contiguous — the math only works if elements are next to each other
-- T* looks the same for a pointer to a single element AND a pointer to an array
-  The pointer is just an address — context tells you how to use it
-
-MENTAL MODEL — HEAP MEMORY AS A WAREHOUSE:
-- Heap memory is like a giant warehouse with numbered shelves
-- When you call: T* newData = new T[4];
-  You're saying: "Give me 4 shelves in a row, give me the address of the first one"
-- newData holds that address (e.g. shelf 1042)
-- The array lives at shelves 1042, 1043, 1044, 1045 — contiguous, all in a row
-- A pointer holds the address of the FIRST shelf — the rest follow sequentially
-- During a grow operation:
-    m_data  -> shelf 500:  [A, B, C, C]              <- old chunk, full
-    newData -> shelf 1042: [_, _, _, _, _, _, _, _]   <- new chunk, empty
-  Then copy old into new, delete old, point m_data at new
-
-DYNAMIC ARRAY — Member Variables:
-  T* data          <- pointer to heap memory block where elements live
-  size_t size      <- how many elements are currently stored
-  size_t capacity  <- how much space is allocated
-
-DYNAMIC ARRAY — Growth Strategy:
-  When full:
-  1. Allocate new larger chunk of heap memory
-  2. Copy all existing elements to new chunk
-  3. Delete old chunk
-  4. Point data pointer at new chunk
-  5. Update capacity
-  - Can't extend existing chunk — something else might be adjacent in memory
-  - Copy step is O(n) — expensive, real time engineers think carefully about this
+STATIC ALLOCATION (to learn later):
+- Fixed size buffers at compile time, no dynamic allocation
+- Avoids fragmentation entirely — common in hard real-time systems
 
 ================================================================================
-GIT & GITHUB
+REAL-TIME SCHEDULING & CONCURRENCY
 ================================================================================
 
-THREE STEP WORKFLOW:
-  git add <files>    <- stage specific files (be explicit, not git add .)
-  git commit -m ""   <- commit with a message
-  git push           <- push to remote (origin)
+RTOS (Real-Time Operating System):
+- Schedules tasks with timing guarantees
+- Every task has a PRIORITY — scheduler runs highest priority READY task
+- Task states: running, ready, blocked, sleeping
 
-WHY BE EXPLICIT WITH git add:
-- git add . adds everything including secrets, credentials, large binaries
-- Being explicit means consciously choosing what goes in each commit
-- Especially important on defense/sensitive projects
+TASK PRIORITIES (missile system example):
+- High:   Guidance — must run every few ms, life or death
+- Medium: Telemetry — sending data to operators
+- Low:    Logging — recording events
 
-ATOMIC COMMITS:
-- Each commit should represent one logical change
-- Makes history readable, easy to revert specific changes, easier to review in PRs
+MUTEX (Mutual Exclusion):
+- Locks shared resource so only one task accesses it at a time
+- Prevents RACE CONDITIONS — two tasks reading/writing same data simultaneously
+- Task locks -> does work -> unlocks. Other tasks block until unlocked.
 
-COMMIT MESSAGE CONVENTION:
-  First line: short summary, under 50 chars, imperative tense ("Add" not "Added")
-  Blank line
-  Body: longer description if needed
+RACE CONDITION:
+- Two tasks access shared data simultaneously, result depends on timing
+- Example: guidance reads sensor value while navigation writes new value mid-read
+- Fix: mutex around shared resource
 
-.gitignore:
-- Controls what git ignores and won't track
-- Add generated/build folders (Build/), secrets, credentials
-- The .gitignore file itself SHOULD be committed so teammates get it too
+PRIORITY INVERSION:
+- High priority task indirectly blocked by low priority task
+- Scenario:
+    1. Low priority locks mutex on shared sensor data
+    2. High priority wakes up, needs mutex — BLOCKED
+    3. Medium priority wakes up, doesn't need mutex — runs freely
+    4. Medium runs while high waits on low = high effectively runs at low priority
+- On a missile: guidance misses deadline = wrong course correction = mission failure
 
-REMOTE:
-- origin — default name for the remote repository on GitHub
-- git remote add origin <url> — connects local repo to GitHub
-- git push -u origin main — pushes and sets upstream tracking
+SOLUTIONS:
+  Priority Inheritance (reactive):
+  - Low priority task inherits high priority temporarily while holding mutex
+  - Finishes fast, releases mutex, drops back to normal priority
 
-BRANCHING STRATEGY (real engineer workflow):
-- Never commit directly to main — it should always be stable and buildable
-- Create a feature branch for each piece of work, merge back when done
-- Convention for this project:
-    main                    <- stable, always builds
-    feature/dynamic-array   <- current work
-    feature/linked-list     <- next data structure
-    etc.
+  Priority Ceiling (proactive):
+  - Mutex assigned ceiling = highest priority task that will ever use it
+  - Any task locking mutex immediately runs at ceiling
+  - Prevents inversion before it starts
 
-BRANCH COMMANDS:
-  git checkout -b <branch-name>   <- classic way: create and switch in one command
-  git switch -c <branch-name>     <- newer, more readable way (does the same thing)
-  git switch <branch-name>        <- switch to an existing branch (no -c)
-  git branch                      <- list all local branches
+MISSILE SOFTWARE ARCHITECTURE:
+Each subsystem = its own RTOS task with priority
+Communication: shared memory, message queues, publish-subscribe
 
-  -c stands for CREATE — switch alone just switches, -c creates first then switches
+- Guidance      — where am I, where going, what's my target
+- Navigation    — fuses GPS/IMU sensor data, tracks position/velocity
+- Control       — takes guidance commands, moves fins/actuators
+- Seeker/Tracker— finds and tracks target (seen at Lockheed)
+- Fuze          — determines when to detonate
+- BIT           — Built-in Test, health monitoring
+- Communication — datalink to operator
 
-PUSHING A NEW BRANCH TO GITHUB:
-  git push -u origin <branch-name>
-  -u sets up tracking so future 'git push' knows where to send it
-  Only need -u the first time — after that just 'git push'
+GUIDANCE SYSTEM:
+- Brain of the missile
+- Fuses: GPS, accelerometers, gyroscopes
+- Calculates course corrections every few milliseconds
+- Math: Kalman filters, PID controllers, quaternion math
+- Missing deadline = wrong correction = mission failure
+
+BEAMFORMER: radar/sonar signal processing, raw antenna signals mathematically focused
+TRACKER: takes beamformer output, predicts target position, maintains track file
+
+CYBER-PHYSICAL SYSTEMS:
+- Where math and software meet physical systems
+- The missile effectors role IS cyber-physical systems engineering
+- Path forward: Kalman filters, PID controllers, control theory, DSP
+
+DIAGRAMS FOR EMBEDDED:
+- Block diagrams: subsystem connections
+- Timing diagrams: when tasks run, deadlines
+- State machines: system behavior modeling (critical — to cover)
+  Example missile states: idle -> armed -> tracking -> terminal guidance -> detonation
 
 ================================================================================
-PROGRAM DESIGN & STRUCTURE (to cover as project grows)
+BIG O NOTATION
 ================================================================================
-- Currently a learning gap — struggle with how objects connect without spaghetti code
+- How an algorithm SCALES as input grows — time and space complexity
+
+O(1)     — constant, doesn't scale with input (array index lookup, hash map get)
+O(n)     — linear, scales with input (copying all elements, linked list search)
+O(n²)   — quadratic, nested loops (bubble sort)
+O(log n) — logarithmic, binary search, very efficient
+Amortized O(1) — occasional expensive operation averaged over many cheap ones
+                 (dynamic array growth — rare O(n) copies, mostly O(1) appends)
+
+================================================================================
+PROGRAM DESIGN & STRUCTURE
+================================================================================
+- Currently a learning gap — objects connecting without spaghetti code
 - Recently learned: dependency injection (need more reps)
 
-CONCEPTS TO LEARN IN CONTEXT THROUGH THE PROJECT:
-- Encapsulation: how does an object expose itself safely to outside code?
-- Dependency management: how do you use one object inside another without tight coupling?
-- Separation of concerns: adding new things shouldn't break existing things
-- Dependency injection: passing dependencies in rather than creating them internally
-- SOLID principles
-- Design patterns
-
-NOTE: Learn these in context as the library grows, not from a textbook
+TO LEARN IN CONTEXT THROUGH PROJECT:
+- Encapsulation: expose behavior not internals
+- Dependency management: use objects inside objects without tight coupling
+- Separation of concerns: new things shouldn't break existing things
+- Dependency injection, SOLID principles, design patterns
 
 ================================================================================
 INTERVIEW REVIEW QUESTIONS
 ================================================================================
-Practice these until the answers are automatic — these are real interview questions.
+Practice until answers are automatic.
 
-1. What is a real-time embedded system and why does it matter for how you write code?
-   KEY TERMS: determinism, bare metal, timing guarantees, scarce resources
+C++ FUNDAMENTALS:
+1.  What is a real-time embedded system and why does it matter for code?
+    KEY: determinism, bare metal, timing guarantees, scarce resources, STL avoidance
 
-2. What is the Rule of Three and why does it exist?
-   KEY TERMS: destructor, copy constructor, copy assignment operator, heap memory, resource management
+2.  What is the Rule of Three and why does it exist?
+    KEY: destructor + copy constructor + copy assignment, heap memory, shallow copy danger
 
-3. What is a dangling pointer and what causes one?
-   KEY TERMS: freed memory, pointer still holds address, shallow copy, destructor
+3.  What is a dangling pointer and what causes one?
+    KEY: freed memory, pointer still holds address, shallow copy, destructor
 
-4. What is the difference between delete and delete[]?
-   KEY TERMS: single object vs array, destructor runs on first element only, undefined behavior
+4.  What is the difference between delete and delete[]?
+    KEY: single object vs array, destructor on first element only, undefined behavior
 
-5. Explain shallow copy vs deep copy and why it matters with heap memory.
-   KEY TERMS: copies address not data, dangling pointer, double free, deep copy allocates new memory
+5.  Explain shallow copy vs deep copy and why it matters.
+    KEY: copies address not data, dangling pointer, double free, new memory + copy loop
 
-6. What is assert and why do embedded engineers use it instead of exceptions?
-   KEY TERMS: stack unwinding, determinism, NDEBUG, release build, compile to nothing
+6.  What is assert and why use it instead of exceptions in embedded?
+    KEY: stack unwinding, determinism, NDEBUG, compiles to nothing in release
 
-7. Walk me through the push_back grow sequence step by step.
-   KEY STEPS: check size==capacity, double capacity, allocate new memory, copy data,
-              delete old memory, point m_data at new block, add element, increment m_size
+7.  Walk through push_back grow sequence step by step.
+    KEY: size==capacity, double capacity, allocate, copy, delete old, reassign pointer, add element, increment
 
-8. What is the difference between copy construction and copy assignment?
-   KEY TERMS: new object vs existing object, self-assignment guard, free existing memory first
+8.  What is the difference between copy construction and copy assignment?
+    KEY: new object vs existing, self-assignment guard, free existing memory first
 
-9. Why do templated classes have to put both declaration and definition in the header?
-   KEY TERMS: compiler generates concrete class per type, needs full definition visible, translation unit
+9.  Why do templated classes put declaration and definition in the header?
+    KEY: concrete class per type, full definition needed at use site, translation unit
 
-10. What is CMake and what does Make do — how do they relate?
-    KEY TERMS: build system generator, generates Makefiles, Make compiles and links, architect/carpenter
+10. What is CMake and what does Make do?
+    KEY: build system generator, generates Makefiles, Make compiles/links, architect/carpenter
 
-================================================================================
-BIG O NOTATION (intro)
-================================================================================
-- Language for describing how an algorithm SCALES as input grows
-- Not exact speed — describes the relationship between input size and work done
-- Covers both TIME complexity and SPACE (memory) complexity
+SCHEDULING & EMBEDDED:
+11. What is priority inversion and why is it dangerous on a missile system?
+    KEY: high blocked by low, medium runs freely, missed guidance deadline, mission failure
 
-O(1)     — constant time, doesn't matter how big input is (ex: array index lookup)
-O(n)     — linear, scales with input size (ex: copying all elements)
-O(n²)   — quadratic, nested loops, gets bad fast
-O(log n) — logarithmic, think binary search, very efficient
+12. What are the two solutions to priority inversion?
+    KEY: priority inheritance (reactive, temporary promotion), priority ceiling (proactive, preassigned)
+
+13. What is a race condition and how do you prevent it?
+    KEY: shared data + simultaneous access + timing dependent result, fix with mutex
+
+14. What is an RTOS and how does it differ from a general OS?
+    KEY: timing guarantees, task priorities, deterministic scheduling, real-time deadlines
+
+15. Why is dynamic memory allocation dangerous in real-time embedded systems?
+    KEY: unpredictable timing, heap fragmentation, determinism broken, STL avoidance
 
 ================================================================================
