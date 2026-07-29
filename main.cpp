@@ -1,6 +1,7 @@
 #include <iostream>
 #include "DynamicArray.hpp"
 #include "LinkedList.hpp"
+#include "Subsystem.hpp"
 
 int main(){
     std::cout<<"hello world"<<std::endl;
@@ -34,7 +35,24 @@ int main(){
     encryptedMessages.push_back('8');
     encryptedMessages.push_back('L');
     encryptedMessages.push_back('!');
-    std::cout <<encryptedMessages.size()<<std::endl;
+    std::cout <<"Size of encryptedMessages = " <<encryptedMessages.size()<<std::endl;
     encryptedMessages.print();
+    LinkedList<char> message = encryptedMessages;
+    std::cout<<" copied message = "<<std::endl;
+    message.print();
+    std::cout<<" "<<std::endl;
+    LinkedList<char>* copyCat(&message);
+    copyCat->push_back('B');
+    copyCat->push_back('M');
+    copyCat->print();
+    *copyCat = encryptedMessages;
+    copyCat->push_back('X');
+    copyCat->print();
+    
+    // GuidanceSystem* g = new GuidanceSystem();
+    // g->update();
+    // Subsystem* s = new GuidanceSystem();
+    // s->update();
+    // //delete s;
     return 0;
 }
