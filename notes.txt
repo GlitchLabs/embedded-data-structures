@@ -36,25 +36,72 @@ GAPS TO FILL:
 - State machines — critical for embedded, on roadmap
 
 ================================================================================
-INTERVIEW FOCUS AREAS — MISSILE & DEFENCE SOFTWARE EFFECTORS ROLE
+INTERVIEW FOCUS AREAS — RAYTHEON SOFTWARE EFFECTORS ROLE
 ================================================================================
-Role: Software effectors on missile systems — code that directly controls
-physical hardware (actuators, guidance). Safety-critical, real-time, panel interview.
+Company: Raytheon
+Role: Software effectors on missile systems
+Interview: June 30th at 2:00pm (one week away as of June 23rd)
+Format: 2 panelists, NO coding or whiteboarding — all verbal
+Decision: within 24-48 hours
 
-They specifically asked about:
-- C++ and OOP fundamentals
-- Real-time embedded systems
+PANELIST 1 — OOP and C++:
+- OOP fundamentals
+- C++ knowledge
+- Any exposure to hardware/software integration
+
+PANELIST 2 — Real-time embedded:
+- Real-time embedded experience
 - Scheduling
-- Priority inversion (interviewer name-dropped this — HIGH PRIORITY to know cold)
+- Priority inversion (screener name-dropped this — know it cold)
+- Behavioral questions (use Claude desktop + Lockheed experience for these)
+
+PREP STRATEGY:
+- Code it AND talk about it — not just answer in head, explain out loud
+- No whiteboarding so verbal clarity is everything
+- C++ and OOP is review/reinforcement from Codecademy + this project
+- Real-time embedded is the gap to close most urgently
+- Behavioral: handled separately with Claude desktop + resume
 
 STUDY FOCUS:
 1. C++ fundamentals — pointers, memory, OOP (in progress via project)
 2. Real-time concepts — determinism, scheduling, task priorities, deadlines
 3. RTOS — what it is, how it schedules tasks
-4. Priority inversion — what it is, why it's dangerous, how to solve it
-5. Embedded constraints — no dynamic allocation in hot paths, fixed-size buffers
+4. Priority inversion — know it cold, both solutions
+5. Hardware/software integration — interrupts, memory mapped I/O basics
 6. Safety mindset — failure modes, what happens when things go wrong
 7. State machines — everywhere in embedded systems
+
+FULL STUDY LIST (hit all before June 30th):
+
+  C++ & OOP:
+  - LinkedList Rule of Three (in progress)
+  - const keyword placement
+  - Virtual functions / polymorphism
+  - Hardware/software integration basics
+
+  Real-Time Embedded & Concurrency:
+  - Mutex in depth — locking, unlocking, deadlock
+  - Concurrency — threads, shared data
+  - RTOS deep dive
+  - Interrupts and interrupt handlers
+  - Memory mapped I/O
+  - State machines
+  - Priority inversion (verbal drill — know it cold)
+
+  Data Structures (project):
+  - LinkedList complete
+  - Queue or Stack
+  - Bit flags / bit manipulation
+  - Thread safe data structure
+
+  Performance:
+  - Big O in practice
+  - AddressSanitizer
+  - Amortized analysis
+
+  Practice:
+  - Verbal answers to all 15 interview questions
+  - Mock panel Q&A session before the interview
 
 ================================================================================
 PROJECT: EMBEDDED DATA STRUCTURES LIBRARY
@@ -274,9 +321,53 @@ TEMPLATES:
 - Both declaration AND definition go in header — compiler needs full definition visible
 - Regular classes can split .hpp/.cpp — templates cannot
 
-CONCRETE vs ABSTRACT CLASS:
-- Abstract: has pure virtual function, cannot be instantiated, defines interface
-- Concrete: fully implemented, can be instantiated
+FOUR PILLARS OF OOP:
+
+  ENCAPSULATION:
+  - Bundle data and methods together, hide implementation details
+  - Private member variables, public interface
+  - User can use the object without knowing how it's implemented
+  - Changing implementation should not affect the interface
+
+  ABSTRACTION:
+  - Hide complexity — expose only what's necessary
+  - Not HOW it works, just WHAT it does
+  - Related to encapsulation but distinct:
+    Encapsulation = bundling + hiding data
+    Abstraction = hiding complexity behind a simple interface
+
+  INHERITANCE:
+  - Child class inherits data and behavior from parent class
+  - Example: Shape -> Square, Vehicle -> Car/Truck/Boat
+  - Child gets parent's methods and data, can add or override
+
+  POLYMORPHISM:
+  - One interface, many implementations
+  - A Vehicle* pointer can point at Car, Truck, or Boat
+  - Call the same method on each — each responds differently
+  - Key for writing flexible, extensible code
+  - In embedded: one Subsystem* can point at Guidance, Navigation, Control
+
+VIRTUAL FUNCTIONS:
+  virtual void update()       <- overridable, base class CAN have implementation
+  virtual void update() = 0   <- pure virtual, derived class MUST implement it
+                                 makes the class ABSTRACT — cannot be instantiated
+
+ABSTRACT vs CONCRETE CLASS:
+- Abstract: has at least one pure virtual function, cannot be instantiated
+  Defines the interface that all derived classes must follow
+- Concrete: fully implemented, no pure virtual functions, CAN be instantiated
+
+VIRTUAL DESTRUCTOR:
+- If a class has virtual functions, its destructor should also be virtual
+- WHY: if you delete a derived object through a base pointer without virtual destructor,
+  only the base destructor runs — derived class memory leaks
+- Rule: if a class is meant to be inherited from, make destructor virtual
+
+const char* vs std::string IN EMBEDDED:
+- std::string uses dynamic allocation internally — avoid in embedded
+- const char* is a pointer to a string literal — no heap allocation, deterministic
+- Use const char* for strings in embedded/real-time contexts
 
 IN-CLASS MEMBER INITIALIZATION (C++11):
   Node<T>* next = nullptr;  <- set at declaration
@@ -300,6 +391,18 @@ OPERATOR OVERLOADING:
 LAZY vs EAGER INITIALIZATION:
 - Lazy: don't allocate until needed (right for embedded — scarce resources)
 - Eager: allocate upfront (convenient but wasteful)
+
+CONST KEYWORD PLACEMENT:
+  const T* p       // pointer to const T — can't change value, CAN move pointer
+  T* const p       // const pointer to T — CAN change value, can't move pointer
+  const T* const p // can't change either
+
+  Trick: left of * = about the value. Right of * = about the pointer itself.
+
+  Three places const appears on functions:
+  1. const parameter:       void read(const uint32_t* data)   — won't modify what's passed in
+  2. const member function: uint32_t get() const              — won't modify object's members (use on all getters)
+  3. const return type:     const uint32_t* getBuffer() const — caller gets read-only access
 
 ASSERT:
   #include <cassert>
@@ -396,6 +499,49 @@ Dynamic Array vs Linked List:
 REAL TIME EMBEDDED SYSTEMS
 ================================================================================
 
+HARDWARE/SOFTWARE INTEGRATION:
+- Matching software to hardware constraints: RAM limits, timing, determinism
+- Software engineers read DATASHEETS — hardware documents that define memory maps,
+  register locations, timing specs, and pin assignments
+
+CPU REGISTERS:
+- Tiny storage locations inside the CPU itself — not RAM
+- CPU cannot do math directly on RAM — it loads values into registers first
+- counter++ is actually: load from RAM into register, add 1, store back to RAM
+- That 3-step sequence is the race condition window in concurrency
+- Hardware chips (sensors, actuators) also have their own registers on the chip
+
+MEMORY MAPPED I/O:
+- How software talks to hardware directly — no drivers in the traditional sense
+- Hardware registers (sensors, actuators, peripherals) are assigned fixed memory addresses
+- Software reads/writes those addresses like normal memory — CPU routes the request
+- Example: uint32_t* sensor = (uint32_t*)0x40001000; uint32_t val = *sensor;
+- That address isn't RAM — it's the sensor chip itself
+- C++ makes this possible because it allows raw pointer access to any memory address
+- Higher level languages (Python) hide this — C/C++ dominate embedded for this reason
+
+SENSORS, ACTUATORS, REGISTERS:
+- Sensors: hardware that reads the physical world — accelerometer, gyroscope, GPS, temperature
+  Physical stimulus -> electrical signal -> chip converts to number -> stores in register
+- Actuators: hardware your software commands to do something physical
+  Fins/control surfaces (steering), fuze (detonation), throttle (thrust)
+- Registers: tiny storage on the chip itself — hold current readings or control chip behavior
+
+THE BUS:
+- Wires on the circuit board connecting the CPU to RAM, sensors, GPU, storage
+- CPU sends a request over the bus to a memory address
+- The bus routes that request to the correct chip based on the address range
+- Common embedded buses: SPI, I2C, UART
+- PCIe: faster modern bus for GPUs, NVMe drives on general purpose computers
+
+THE MEMORY MAP:
+- An agreement defined by hardware engineers when designing the board
+- Assigns address ranges to specific hardware: RAM here, flash here, sensors here
+- Physically baked into the board — bus traces route addresses to the right chips
+- Software engineer reads the datasheet, writes code that uses the correct addresses
+- That's hardware/software integration: reading the hardware design, writing software to match it
+- Analogy: addresses are the agreement, bus traces are the roads, chips are the buildings
+
 EMBEDDED:
 - Software on dedicated hardware with specific purpose
 - Often: limited RAM, no hard drive, sometimes no OS (bare metal)
@@ -439,15 +585,53 @@ TASK PRIORITIES (missile system example):
 - Medium: Telemetry — sending data to operators
 - Low:    Logging — recording events
 
+PROCESS vs THREAD:
+- Process: a running program — gets its own isolated memory space (heap, globals, resources)
+- Thread: a path of execution INSIDE a process — multiple threads share the same memory
+- CPU switches between threads so fast it feels simultaneous — called CONTEXT SWITCHING
+- The OS decides who gets CPU time and when — that's the SCHEDULER
+- Only one thread runs on one core at any given moment
+
 MUTEX (Mutual Exclusion):
 - Locks shared resource so only one task accesses it at a time
 - Prevents RACE CONDITIONS — two tasks reading/writing same data simultaneously
 - Task locks -> does work -> unlocks. Other tasks block until unlocked.
+- You don't lock the variable — you lock the CRITICAL SECTION (the block of code that touches it)
 
 RACE CONDITION:
 - Two tasks access shared data simultaneously, result depends on timing
-- Example: guidance reads sensor value while navigation writes new value mid-read
-- Fix: mutex around shared resource
+- Example: counter++ looks like 1 step but is actually 3: read, add 1, write back
+- Scheduler can yank a thread between any of those steps — that's the race window
+- Result can be silent wrong data (no crash, no error message)
+- Fix: mutex around the critical section
+
+DEADLOCK:
+- Two or more threads permanently waiting on each other — none can proceed
+- Two ways it happens:
+  1. Thread crashes or never releases mutex — lock held forever, waiters blocked forever
+  2. Circular dependency — Thread A holds mutex 1, waits on mutex 2
+                           Thread B holds mutex 2, waits on mutex 1
+                           Neither can proceed — they wait forever
+- No crash required for deadlock — just permanent blocking
+- On a missile: deadlocked guidance task = missed deadline = mission failure
+
+MANUAL LOCK vs LOCK_GUARD:
+- counterMutex.lock() / counterMutex.unlock() — manual, dangerous
+- If anything goes wrong between lock and unlock (crash, assert, early return),
+  unlock never gets called — mutex stays locked forever
+- On general-purpose OS: process dies, OS cleans up all locks — no deadlock
+- On bare metal embedded RTOS: no OS safety net — tasks waiting on that mutex
+  wait forever, system stuck in partial state
+- std::lock_guard is RAII for mutexes — guarantees unlock when scope exits
+- Rule: always prefer lock_guard over manual lock/unlock
+
+ATOMIC OPERATION:
+- An operation that completes fully without any possibility of interruption
+- counter++ is NOT atomic — it's 3 steps the scheduler can split
+- std::atomic<int>: uses special CPU instructions to make single operations truly atomic
+- std::mutex: software-level atomicity for complex multi-line critical sections
+- Use std::atomic for simple single-variable operations
+- Use std::mutex when critical section is multiple lines or complex logic
 
 PRIORITY INVERSION:
 - High priority task indirectly blocked by low priority task
