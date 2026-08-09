@@ -44,8 +44,7 @@ public:
             push_back(current->value);
             current = current->next;
         }
-        return *
-        this;
+        return *this;
     }
     size_t size()const{
         return m_size;
